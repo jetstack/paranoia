@@ -26,5 +26,5 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringP("output", "o", "pretty", "Output mode. Supported modes: "+strings.Join(output.Modes, ","))
+	rootCmd.PersistentFlags().StringP("output", "o", "pretty", "Output mode. Supported modes: "+strings.Join(output.Modes, ", "))
 }
