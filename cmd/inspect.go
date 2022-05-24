@@ -3,8 +3,11 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/google/go-containerregistry/pkg/crane"
+	"github.com/nlepage/go-tarfs"
 	"github.com/spf13/cobra"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
@@ -37,7 +40,36 @@ var inspectCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
+		err = tmpfile.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
 
+		f, err := os.Open(tmpfile.Name())
+		defer func(f *os.File) {
+			err := f.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+		}(f)
+
+		tfs, err := tarfs.New(f)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = fs.WalkDir(tfs, ".", func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(path)
+			return nil
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("Done")
 	},
 }
 

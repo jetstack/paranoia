@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/google/go-containerregistry v0.9.0
+	github.com/nlepage/go-tarfs v1.1.0
 	github.com/spf13/cobra v1.4.0
 )
 
