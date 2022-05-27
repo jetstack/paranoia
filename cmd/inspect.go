@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -14,6 +15,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type FoundCert struct {
@@ -44,13 +46,17 @@ var inspectCmd = &cobra.Command{
 			}
 		}(tmpfile.Name())
 
-		fmt.Printf("Downloading container image %s\n", imageName)
+		if OutputMode == output.ModePretty {
+			fmt.Printf("Downloading container image %s\n", imageName)
+		}
 		img, err := crane.Pull(imageName)
 		if err != nil {
 			panic(err)
 		}
 
-		fmt.Println("Exporting combined filesystem image")
+		if OutputMode == output.ModePretty {
+			fmt.Println("Exporting combined filesystem image")
+		}
 		err = crane.Export(img, tmpfile)
 		if err != nil {
 			panic(err)
@@ -60,7 +66,9 @@ var inspectCmd = &cobra.Command{
 			panic(err)
 		}
 
-		fmt.Println("Inspecting container filesystem")
+		if OutputMode == output.ModePretty {
+			fmt.Println("Inspecting container filesystem")
+		}
 		f, err := os.Open(tmpfile.Name())
 		defer func(f *os.File) {
 			err := f.Close()
@@ -81,7 +89,6 @@ var inspectCmd = &cobra.Command{
 				panic(err)
 			}
 			if filepath.Ext(path) == ".crt" {
-				fmt.Printf("Found suspected certificates file %s\n", path)
 				data, err := fs.ReadFile(tfs, path)
 				if err != nil {
 					panic(err)
@@ -113,12 +120,33 @@ var inspectCmd = &cobra.Command{
 			panic(err)
 		}
 
-		fmt.Printf("Found %d certificates\n", len(foundCerts))
-		for _, fc := range foundCerts {
-			fmt.Printf("Found in %s: %s\n", fc.Location, fc.Certificate.Subject)
+		if OutputMode == output.ModePretty {
+			fmt.Printf("Found %d certificates\n", len(foundCerts))
+			for _, fc := range foundCerts {
+				fmt.Printf("Found in %s: %s\n", fc.Location, fc.Certificate.Subject)
+			}
+			fmt.Println("Done")
+		} else if OutputMode == output.ModeJSON {
+			o := output.JSONOutput{}
+			o.Certificates = make([]output.JSONCertificate, len(foundCerts))
+			for i, c := range foundCerts {
+				o.Certificates[i] = output.JSONCertificate{
+					FileLocation: c.Location,
+					Owner:        c.Certificate.Issuer.CommonName,
+					Signature:    fmt.Sprintf("%X", c.Certificate.Signature),
+					NotBefore:    c.Certificate.NotBefore.Format(time.RFC3339),
+					NotAfter:     c.Certificate.NotAfter.Format(time.RFC3339),
+				}
+			}
+
+			m, err := json.Marshal(o)
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Println(string(m))
 		}
 
-		fmt.Println("Done")
 	},
 }
 
