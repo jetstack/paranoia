@@ -3,7 +3,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/jetstack/paranoia/pkg/analyse"
@@ -62,36 +61,33 @@ var inspectCmd = &cobra.Command{
 			panic(err)
 		}
 
-		if OutputMode == output.ModePretty {
-			fmt.Printf("Found %d certificates\n", len(foundCerts))
-			for _, fc := range foundCerts {
-				notes := analyser.AnalyseCertificate(fc.Certificate)
-				if len(notes) > 0 {
-					fmt.Printf("Certificate %s\n", fc.Certificate.Subject)
-					for i, n := range notes {
-						var lead string
-						if i == len(notes)-1 {
-							lead = "┗"
-						} else {
-							lead = "┣"
-						}
-						var fmtFn func(format string, a ...interface{}) string
-						var emoji string
-						if n.Level == analyse.NoteLevelError {
-							fmtFn = color.New(color.FgRed).SprintfFunc()
-							emoji = "🚨"
-						} else if n.Level == analyse.NoteLevelWarn {
-							fmtFn = color.New(color.FgYellow).SprintfFunc()
-							emoji = "⚠️"
-						}
-						fmt.Printf(lead + " " + fmtFn("%s %s\n", emoji, n.Reason))
+		numIssues := 0
+		for _, fc := range foundCerts {
+			notes := analyser.AnalyseCertificate(fc.Certificate)
+			if len(notes) > 0 {
+				numIssues++
+				fmt.Printf("Certificate %s\n", fc.Certificate.Subject)
+				for i, n := range notes {
+					var lead string
+					if i == len(notes)-1 {
+						lead = "┗"
+					} else {
+						lead = "┣"
 					}
+					var fmtFn func(format string, a ...interface{}) string
+					var emoji string
+					if n.Level == analyse.NoteLevelError {
+						fmtFn = color.New(color.FgRed).SprintfFunc()
+						emoji = "🚨"
+					} else if n.Level == analyse.NoteLevelWarn {
+						fmtFn = color.New(color.FgYellow).SprintfFunc()
+						emoji = "⚠️"
+					}
+					fmt.Printf(lead + " " + fmtFn("%s %s\n", emoji, n.Reason))
 				}
 			}
-			fmt.Println("Done")
-		} else if OutputMode == output.ModeJSON {
-			panic(errors.New("JSON not supported for inspect"))
 		}
+		fmt.Printf("Found %d certificates total, of which %d had issues\n", len(foundCerts), numIssues)
 
 	},
 }
