@@ -5,12 +5,13 @@ package cmd
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"github.com/google/go-containerregistry/pkg/crane"
+	"github.com/jetstack/paranoia/pkg/output"
 	"github.com/nlepage/go-tarfs"
 	"github.com/spf13/cobra"
 	"io/fs"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -28,57 +29,57 @@ var inspectCmd = &cobra.Command{
 		imageName := args[0]
 		tmpfile, err := ioutil.TempFile("", "paranoia")
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 
 		defer func(name string) {
 			err := os.Remove(name)
 			if err != nil {
-				log.Fatal(err)
+				panic(err)
 			}
 		}(tmpfile.Name())
 
-		log.Printf("Downloading container image %s\n", imageName)
+		fmt.Printf("Downloading container image %s\n", imageName)
 		img, err := crane.Pull(imageName)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 
-		log.Println("Exporting combined filesystem image")
+		fmt.Println("Exporting combined filesystem image")
 		err = crane.Export(img, tmpfile)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 		err = tmpfile.Close()
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 
-		log.Println("Inspecting container filesystem")
+		fmt.Println("Inspecting container filesystem")
 		f, err := os.Open(tmpfile.Name())
 		defer func(f *os.File) {
 			err := f.Close()
 			if err != nil {
-				log.Fatal(err)
+				panic(err)
 			}
 		}(f)
 
 		tfs, err := tarfs.New(f)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 
 		var foundCerts []FoundCert
 
 		err = fs.WalkDir(tfs, ".", func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
-				log.Fatal(err)
+				panic(err)
 			}
 			if filepath.Ext(path) == ".crt" {
-				log.Printf("Found suspected certificates file %s\n", path)
+				fmt.Printf("Found suspected certificates file %s\n", path)
 				data, err := fs.ReadFile(tfs, path)
 				if err != nil {
-					log.Fatal(err)
+					panic(err)
 				}
 
 				var block *pem.Block
@@ -91,7 +92,7 @@ var inspectCmd = &cobra.Command{
 						if block.Type == "CERTIFICATE" {
 							cert, err := x509.ParseCertificate(block.Bytes)
 							if err != nil {
-								log.Fatal(err)
+								panic(err)
 							}
 							foundCerts = append(foundCerts, FoundCert{
 								Location:    path,
@@ -104,15 +105,15 @@ var inspectCmd = &cobra.Command{
 			return nil
 		})
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 
-		log.Printf("Found %d certificates\n", len(foundCerts))
+		fmt.Printf("Found %d certificates\n", len(foundCerts))
 		for _, fc := range foundCerts {
-			log.Printf("Found in %s: %s\n", fc.Location, fc.Certificate.Subject)
+			fmt.Printf("Found in %s: %s\n", fc.Location, fc.Certificate.Subject)
 		}
 
-		log.Println("Done")
+		fmt.Println("Done")
 	},
 }
 
