@@ -53,7 +53,6 @@ func NewAnalyser() (*Analyser, error) {
 			Comments:    c[22],
 		}
 	}
-	fmt.Printf("Learnt of %d removed certs from Mozilla", len(rc))
 	return &a, nil
 }
 

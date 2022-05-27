@@ -66,17 +66,26 @@ var inspectCmd = &cobra.Command{
 			fmt.Printf("Found %d certificates\n", len(foundCerts))
 			for _, fc := range foundCerts {
 				notes := analyser.AnalyseCertificate(fc.Certificate)
-				for _, n := range notes {
-					var fmtFn func(format string, a ...interface{}) string
-					var emoji string
-					if n.Level == analyse.NoteLevelError {
-						fmtFn = color.New(color.FgRed).SprintfFunc()
-						emoji = "🚨"
-					} else if n.Level == analyse.NoteLevelWarn {
-						fmtFn = color.New(color.FgYellow).SprintfFunc()
-						emoji = "⚠️"
+				if len(notes) > 0 {
+					fmt.Printf("Certificate %s\n", fc.Certificate.Subject)
+					for i, n := range notes {
+						var lead string
+						if i == len(notes)-1 {
+							lead = "┗"
+						} else {
+							lead = "┣"
+						}
+						var fmtFn func(format string, a ...interface{}) string
+						var emoji string
+						if n.Level == analyse.NoteLevelError {
+							fmtFn = color.New(color.FgRed).SprintfFunc()
+							emoji = "🚨"
+						} else if n.Level == analyse.NoteLevelWarn {
+							fmtFn = color.New(color.FgYellow).SprintfFunc()
+							emoji = "⚠️"
+						}
+						fmt.Printf(lead + " " + fmtFn("%s %s\n", emoji, n.Reason))
 					}
-					fmt.Printf(fmtFn("%s certificate '%s' %s\n", emoji, fc.Certificate.Subject.CommonName, n.Reason))
 				}
 			}
 			fmt.Println("Done")
