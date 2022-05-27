@@ -3,8 +3,10 @@ module github.com/jetstack/paranoia
 go 1.18
 
 require (
+	github.com/fatih/color v1.13.0
 	github.com/google/go-containerregistry v0.9.0
 	github.com/nlepage/go-tarfs v1.1.0
+	github.com/rodaine/table v1.0.1
 	github.com/spf13/cobra v1.4.0
 )
 
@@ -16,6 +18,8 @@ require (
 	github.com/docker/docker-credential-helpers v0.6.4 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/klauspost/compress v1.15.4 // indirect
+	github.com/mattn/go-colorable v0.1.11 // indirect
+	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198 // indirect

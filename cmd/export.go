@@ -5,18 +5,20 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/jetstack/paranoia/pkg/certificate"
 	"github.com/jetstack/paranoia/pkg/image"
 	"github.com/jetstack/paranoia/pkg/output"
+	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"time"
 )
 
-var inspectCmd = &cobra.Command{
-	Use:   "inspect",
-	Short: "Inspect a container image for root certificates",
+var exportCmd = &cobra.Command{
+	Use:   "export",
+	Short: "Export all certificate data for later use",
 	Run: func(cmd *cobra.Command, args []string) {
 		err := output.ValidateOutputMode(OutputMode)
 		if err != nil {
@@ -57,11 +59,20 @@ var inspectCmd = &cobra.Command{
 		}
 
 		if OutputMode == output.ModePretty {
-			fmt.Printf("Found %d certificates\n", len(foundCerts))
+			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+			columnFmt := color.New(color.FgYellow).SprintfFunc()
+
+			tbl := table.New("File Location", "Owner", "Not Before", "Not After")
+			tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+
 			for _, fc := range foundCerts {
-				fmt.Printf("Found in %s: %s\n", fc.Location, fc.Certificate.Subject)
+				tbl.AddRow(fc.Location,
+					fc.Certificate.Issuer.CommonName,
+					fc.Certificate.NotBefore.Format(time.RFC3339),
+					fc.Certificate.NotAfter.Format(time.RFC3339))
 			}
-			fmt.Println("Done")
+			tbl.Print()
+			fmt.Printf("Found %d certificates\n", len(foundCerts))
 		} else if OutputMode == output.ModeJSON {
 			o := output.JSONOutput{}
 			o.Certificates = make([]output.JSONCertificate, len(foundCerts))
@@ -87,5 +98,5 @@ var inspectCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(inspectCmd)
+	rootCmd.AddCommand(exportCmd)
 }
