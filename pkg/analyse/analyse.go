@@ -39,7 +39,7 @@ func AnalyseCertificate(cert *x509.Certificate) []Note {
 	} else if sixIshMonthsFromNow.After(cert.NotAfter) {
 		notes = append(notes, Note{
 			Level:  NoteLevelWarn,
-			Reason: "expires soon ( expires on " + cert.NotBefore.Format(time.RFC3339) + ", " + fmtDuration(cert.NotAfter.Sub(now)) + " until expiry)",
+			Reason: "expires soon ( expires on " + cert.NotAfter.Format(time.RFC3339) + ", " + fmtDuration(cert.NotAfter.Sub(now)) + " until expiry)",
 		})
 	}
 	return notes
