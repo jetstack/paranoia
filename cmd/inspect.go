@@ -57,10 +57,15 @@ var inspectCmd = &cobra.Command{
 			panic(err)
 		}
 
+		analyser, err := analyse.NewAnalyser()
+		if err != nil {
+			panic(err)
+		}
+
 		if OutputMode == output.ModePretty {
 			fmt.Printf("Found %d certificates\n", len(foundCerts))
 			for _, fc := range foundCerts {
-				notes := analyse.AnalyseCertificate(fc.Certificate)
+				notes := analyser.AnalyseCertificate(fc.Certificate)
 				for _, n := range notes {
 					var fmtFn func(format string, a ...interface{}) string
 					var emoji string
