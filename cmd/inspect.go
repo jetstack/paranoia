@@ -3,15 +3,16 @@
 package cmd
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/fatih/color"
+	"github.com/jetstack/paranoia/pkg/analyse"
 	"github.com/jetstack/paranoia/pkg/certificate"
 	"github.com/jetstack/paranoia/pkg/image"
 	"github.com/jetstack/paranoia/pkg/output"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
-	"time"
 )
 
 var inspectCmd = &cobra.Command{
@@ -59,28 +60,23 @@ var inspectCmd = &cobra.Command{
 		if OutputMode == output.ModePretty {
 			fmt.Printf("Found %d certificates\n", len(foundCerts))
 			for _, fc := range foundCerts {
-				fmt.Printf("Found in %s: %s\n", fc.Location, fc.Certificate.Subject)
+				notes := analyse.AnalyseCertificate(fc.Certificate)
+				for _, n := range notes {
+					var fmtFn func(format string, a ...interface{}) string
+					var emoji string
+					if n.Level == analyse.NoteLevelError {
+						fmtFn = color.New(color.FgRed).SprintfFunc()
+						emoji = "🚨"
+					} else if n.Level == analyse.NoteLevelWarn {
+						fmtFn = color.New(color.FgYellow).SprintfFunc()
+						emoji = "⚠️"
+					}
+					fmt.Printf(fmtFn("%s certificate '%s' %s\n", emoji, fc.Certificate.Subject.CommonName, n.Reason))
+				}
 			}
 			fmt.Println("Done")
 		} else if OutputMode == output.ModeJSON {
-			o := output.JSONOutput{}
-			o.Certificates = make([]output.JSONCertificate, len(foundCerts))
-			for i, c := range foundCerts {
-				o.Certificates[i] = output.JSONCertificate{
-					FileLocation: c.Location,
-					Owner:        c.Certificate.Issuer.CommonName,
-					Signature:    fmt.Sprintf("%X", c.Certificate.Signature),
-					NotBefore:    c.Certificate.NotBefore.Format(time.RFC3339),
-					NotAfter:     c.Certificate.NotAfter.Format(time.RFC3339),
-				}
-			}
-
-			m, err := json.Marshal(o)
-			if err != nil {
-				panic(err)
-			}
-
-			fmt.Println(string(m))
+			panic(errors.New("JSON not supported for inspect"))
 		}
 
 	},
