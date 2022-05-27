@@ -26,6 +26,11 @@ var inspectCmd = &cobra.Command{
 	Use:   "inspect",
 	Short: "Inspect a container image for root certificates",
 	Run: func(cmd *cobra.Command, args []string) {
+		err := output.ValidateOutputMode(OutputMode)
+		if err != nil {
+			panic(err)
+		}
+
 		imageName := args[0]
 		tmpfile, err := ioutil.TempFile("", "paranoia")
 		if err != nil {
