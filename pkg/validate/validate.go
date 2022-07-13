@@ -1,6 +1,8 @@
 package validate
 
 import (
+	"encoding/hex"
+
 	"github.com/jetstack/paranoia/pkg/certificate"
 	"github.com/jetstack/paranoia/pkg/checksum"
 )
@@ -16,6 +18,8 @@ type Validator struct {
 	allowSHA256    map[[32]byte]bool
 	forbidSHA1     map[[20]byte]bool
 	forbidSHA256   map[[32]byte]bool
+	requiredSHA1   [][20]byte
+	requiredSHA256 [][32]byte
 }
 
 func NewValidator(config Config, permissiveMode bool) (*Validator, error) {
@@ -62,6 +66,23 @@ func NewValidator(config Config, permissiveMode bool) (*Validator, error) {
 			v.forbidSHA256[sha] = true
 		}
 	}
+
+	for _, required := range config.Require {
+		if required.Fingerprints.Sha1 != "" {
+			sha, err := checksum.ParseSHA1(required.Fingerprints.Sha1)
+			if err != nil {
+				return nil, err
+			}
+			v.requiredSHA1 = append(v.requiredSHA1, sha)
+		}
+		if required.Fingerprints.Sha256 != "" {
+			sha, err := checksum.ParseSHA256(required.Fingerprints.Sha256)
+			if err != nil {
+				return nil, err
+			}
+			v.requiredSHA256 = append(v.requiredSHA256, sha)
+		}
+	}
 	return &v, nil
 }
 
@@ -77,17 +98,42 @@ func (r *Result) IsPass() bool {
 
 func (v *Validator) Validate(certs []certificate.FoundCertificate) (*Result, error) {
 	result := Result{}
+	sha1checksums := make(map[[20]byte]bool)
+	sha256checksums := make(map[[32]byte]bool)
 	for _, fc := range certs {
+		sha1checksums[fc.FingerprintSha1] = true
+		sha256checksums[fc.FingerprintSha256] = true
 		if !v.permissiveMode {
 			if !v.IsAllowed(fc) {
 				result.NotAllowedCertificates = append(result.NotAllowedCertificates, fc)
 			}
 		}
+
 		if v.IsForbidden(fc) {
 			result.ForbiddenCertificates = append(result.ForbiddenCertificates, fc)
 		}
 	}
-	// TODO check this required cert is in the found list
+
+	// Check for missing required certificates
+	for _, sha := range v.requiredSHA1 {
+		if _, ok := sha1checksums[sha]; !ok {
+			result.RequiredButAbsent = append(result.RequiredButAbsent, CertificateEntry{
+				Fingerprints: CertificateFingerprints{
+					Sha1: hex.EncodeToString(sha[:]),
+				},
+			})
+		}
+	}
+
+	for _, sha := range v.requiredSHA256 {
+		if _, ok := sha256checksums[sha]; !ok {
+			result.RequiredButAbsent = append(result.RequiredButAbsent, CertificateEntry{
+				Fingerprints: CertificateFingerprints{
+					Sha256: hex.EncodeToString(sha[:]),
+				},
+			})
+		}
+	}
 
 	return &result, nil
 }

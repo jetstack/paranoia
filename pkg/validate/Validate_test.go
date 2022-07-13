@@ -1,7 +1,11 @@
 package validate
 
 import (
+	"crypto/sha1"
+	"crypto/sha256"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -43,7 +47,7 @@ func TestValidator(t *testing.T) {
 			r, err := validator.Validate([]certificate.FoundCertificate{
 				{
 					FingerprintSha1:   checksum.MustParseSHA1(allowedSHA1),
-					FingerprintSha256: checksum.MustParseSHA256("edfa7caf7f1274d54bacec91e21a5b1a04a7b94bf197f5c92070b8de148d9b37"),
+					FingerprintSha256: anySHA256(),
 				},
 			})
 			assert.NoError(t, err)
@@ -166,4 +170,57 @@ func TestValidator(t *testing.T) {
 		assert.Falsef(t, r.IsPass(), "Validation reported passed, when expected it to fail")
 		assert.Contains(t, r.ForbiddenCertificates, forbiddenCert)
 	})
+
+	t.Run("Require List", func(t *testing.T) {
+		requiredSHA1 := "4ae840b224dccf3af3ac0827be5f885eded18a17"
+		requiredSHA256 := "01be162c36a6e26951a7ba4fbe6fba11dc7f4b9d589a072fc9d0183fc3386413"
+		config := Config{
+			Require: []CertificateEntry{
+				{
+					Fingerprints: CertificateFingerprints{
+						Sha1:   requiredSHA1,
+						Sha256: requiredSHA256,
+					},
+				},
+			},
+		}
+
+		validator, err := NewValidator(config, false)
+		require.NoError(t, err)
+
+		t.Run("All required certs found", func(t *testing.T) {
+			foundCerts := []certificate.FoundCertificate{
+				{FingerprintSha1: checksum.MustParseSHA1(requiredSHA1)},
+				{FingerprintSha256: checksum.MustParseSHA256(requiredSHA256)},
+			}
+
+			r, err := validator.Validate(foundCerts)
+			assert.NoError(t, err)
+			assert.Truef(t, r.IsPass(), "Validation reported as failed, when we expected it to pass")
+		})
+
+		t.Run("Missing required cert", func(t *testing.T) {
+			foundCert := certificate.FoundCertificate{
+				FingerprintSha1:   anySHA1(),
+				FingerprintSha256: anySHA256(),
+			}
+
+			r, err := validator.Validate([]certificate.FoundCertificate{foundCert})
+			assert.NoError(t, err)
+			assert.Falsef(t, r.IsPass(), "Validation reported as passed, when we expected it to fail")
+			assert.Contains(t, r.RequiredButAbsent, CertificateEntry{CertificateFingerprints{Sha1: requiredSHA1}})
+			assert.Contains(t, r.RequiredButAbsent, CertificateEntry{CertificateFingerprints{Sha256: requiredSHA256}})
+		})
+
+	})
+}
+
+func anySHA1() [20]byte {
+	timestamp := time.Now().Unix()
+	return sha1.Sum([]byte(strconv.FormatInt(timestamp, 10)))
+}
+
+func anySHA256() [32]byte {
+	timestamp := time.Now().Unix()
+	return sha256.Sum256([]byte(strconv.FormatInt(timestamp, 10)))
 }
