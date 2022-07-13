@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/fatih/color"
@@ -62,14 +63,15 @@ var exportCmd = &cobra.Command{
 			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 			columnFmt := color.New(color.FgYellow).SprintfFunc()
 
-			tbl := table.New("File Location", "Owner", "Not Before", "Not After")
+			tbl := table.New("File Location", "Owner", "Not Before", "Not After", "SHA-256")
 			tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
 			for _, fc := range foundCerts {
 				tbl.AddRow(fc.Location,
 					fc.Certificate.Issuer.CommonName,
 					fc.Certificate.NotBefore.Format(time.RFC3339),
-					fc.Certificate.NotAfter.Format(time.RFC3339))
+					fc.Certificate.NotAfter.Format(time.RFC3339),
+					hex.EncodeToString(fc.FingerprintSha256[:]))
 			}
 			tbl.Print()
 			fmt.Printf("Found %d certificates\n", len(foundCerts))
@@ -78,11 +80,13 @@ var exportCmd = &cobra.Command{
 			o.Certificates = make([]output.JSONCertificate, len(foundCerts))
 			for i, c := range foundCerts {
 				o.Certificates[i] = output.JSONCertificate{
-					FileLocation: c.Location,
-					Owner:        c.Certificate.Issuer.CommonName,
-					Signature:    fmt.Sprintf("%X", c.Certificate.Signature),
-					NotBefore:    c.Certificate.NotBefore.Format(time.RFC3339),
-					NotAfter:     c.Certificate.NotAfter.Format(time.RFC3339),
+					FileLocation:      c.Location,
+					Owner:             c.Certificate.Issuer.CommonName,
+					Signature:         fmt.Sprintf("%X", c.Certificate.Signature),
+					NotBefore:         c.Certificate.NotBefore.Format(time.RFC3339),
+					NotAfter:          c.Certificate.NotAfter.Format(time.RFC3339),
+					FingerprintSHA1:   hex.EncodeToString(c.FingerprintSha1[:]),
+					FingerprintSHA256: hex.EncodeToString(c.FingerprintSha256[:]),
 				}
 			}
 

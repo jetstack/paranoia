@@ -5,9 +5,11 @@ type JSONOutput struct {
 }
 
 type JSONCertificate struct {
-	FileLocation string `json:"fileLocation"`
-	Owner        string `json:"owner"`
-	Signature    string `json:"signature"`
-	NotBefore    string `json:"notBefore"`
-	NotAfter     string `json:"notAfter"`
+	FileLocation      string `json:"fileLocation"`
+	Owner             string `json:"owner"`
+	Signature         string `json:"signature"`
+	NotBefore         string `json:"notBefore"`
+	NotAfter          string `json:"notAfter"`
+	FingerprintSHA1   string `json:"FingerprintSHA1"`
+	FingerprintSHA256 string `json:"FingerprintSHA256"`
 }
