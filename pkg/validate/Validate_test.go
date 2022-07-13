@@ -36,7 +36,7 @@ func TestValidator(t *testing.T) {
 		t.Run("No found certs is fine", func(t *testing.T) {
 			r, err := validator.Validate(nil)
 			assert.NoError(t, err)
-			assert.Truef(t, r.IsPass(), "Validation reported as failed")
+			assert.Truef(t, r.IsPass(), "Validation reported as failed, expected pass")
 		})
 
 		t.Run("Accepts permitted certificates with SHA1", func(t *testing.T) {
@@ -47,7 +47,7 @@ func TestValidator(t *testing.T) {
 				},
 			})
 			assert.NoError(t, err)
-			assert.Truef(t, r.IsPass(), "Validation reported as failed")
+			assert.Truef(t, r.IsPass(), "Validation reported as failed, expected pass")
 		})
 
 		t.Run("Accepts permitted certificates with SHA256", func(t *testing.T) {
@@ -73,4 +73,97 @@ func TestValidator(t *testing.T) {
 		})
 	})
 
+	t.Run("Permissive Allow List", func(t *testing.T) {
+		validator, err := NewValidator(Config{}, true)
+		require.NoError(t, err)
+
+		certWeWant := certificate.FoundCertificate{
+			FingerprintSha1:   checksum.MustParseSHA1("4749c6f4aeb2e06f6b71129a9697219e97166db4"),
+			FingerprintSha256: checksum.MustParseSHA256("edfa7caf7f1274d54bacec91e21a5b1a04a7b94bf197f5c92070b8de148d9b37"),
+		}
+
+		r, err := validator.Validate([]certificate.FoundCertificate{certWeWant})
+		assert.NoError(t, err)
+		assert.Truef(t, r.IsPass(), "Validation reported failed, when we expected it to pass")
+	})
+
+	t.Run("Forbid List", func(t *testing.T) {
+		forbiddenSHA1 := "4ae840b224dccf3af3ac0827be5f885eded18a17"
+		forbiddenSHA256 := "01be162c36a6e26951a7ba4fbe6fba11dc7f4b9d589a072fc9d0183fc3386413"
+		config := Config{
+			Forbid: []CertificateEntry{
+				{
+					Fingerprints: CertificateFingerprints{
+						Sha1: forbiddenSHA1,
+					},
+				},
+				{
+					Fingerprints: CertificateFingerprints{
+						Sha256: forbiddenSHA256,
+					},
+				},
+			},
+		}
+
+		validator, err := NewValidator(config, false)
+		require.NoError(t, err)
+
+		t.Run("Fails on forbidden SHA1", func(t *testing.T) {
+			forbiddenCert := certificate.FoundCertificate{
+				FingerprintSha1:   checksum.MustParseSHA1(forbiddenSHA1),
+				FingerprintSha256: checksum.MustParseSHA256("edfa7caf7f1274d54bacec91e21a5b1a04a7b94bf197f5c92070b8de148d9b37"),
+			}
+
+			r, err := validator.Validate([]certificate.FoundCertificate{forbiddenCert})
+			assert.NoError(t, err)
+			assert.Falsef(t, r.IsPass(), "Validation reported passed, when expected it to fail")
+			assert.Contains(t, r.ForbiddenCertificates, forbiddenCert)
+		})
+
+		t.Run("Fails on forbidden SHA256", func(t *testing.T) {
+			forbiddenCert := certificate.FoundCertificate{
+				FingerprintSha1:   checksum.MustParseSHA1("4749c6f4aeb2e06f6b71129a9697219e97166db4"),
+				FingerprintSha256: checksum.MustParseSHA256(forbiddenSHA256),
+			}
+
+			r, err := validator.Validate([]certificate.FoundCertificate{forbiddenCert})
+			assert.NoError(t, err)
+			assert.Falsef(t, r.IsPass(), "Validation reported passed, when expected it to fail")
+			assert.Contains(t, r.ForbiddenCertificates, forbiddenCert)
+		})
+	})
+
+	t.Run("Fails when allowed SHA1 and forbidden SHA256", func(t *testing.T) {
+		forbiddenSHA1 := "4ae840b224dccf3af3ac0827be5f885eded18a17"
+		forbiddenSHA256 := "01be162c36a6e26951a7ba4fbe6fba11dc7f4b9d589a072fc9d0183fc3386413"
+		config := Config{
+			Allow: []CertificateEntry{
+				{
+					Fingerprints: CertificateFingerprints{
+						Sha1: forbiddenSHA1,
+					},
+				},
+			},
+			Forbid: []CertificateEntry{
+				{
+					Fingerprints: CertificateFingerprints{
+						Sha256: forbiddenSHA256,
+					},
+				},
+			},
+		}
+
+		validator, err := NewValidator(config, false)
+		require.NoError(t, err)
+
+		forbiddenCert := certificate.FoundCertificate{
+			FingerprintSha1:   checksum.MustParseSHA1(forbiddenSHA1),
+			FingerprintSha256: checksum.MustParseSHA256(forbiddenSHA256),
+		}
+
+		r, err := validator.Validate([]certificate.FoundCertificate{forbiddenCert})
+		assert.NoError(t, err)
+		assert.Falsef(t, r.IsPass(), "Validation reported passed, when expected it to fail")
+		assert.Contains(t, r.ForbiddenCertificates, forbiddenCert)
+	})
 }

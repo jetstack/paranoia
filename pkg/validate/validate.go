@@ -18,16 +18,16 @@ type Validator struct {
 	forbidSHA256   map[[32]byte]bool
 }
 
-func NewValidator(config Config, permissveMode bool) (*Validator, error) {
+func NewValidator(config Config, permissiveMode bool) (*Validator, error) {
 	v := Validator{
 		config:         config,
-		permissiveMode: permissveMode,
+		permissiveMode: permissiveMode,
 		allowSHA1:      make(map[[20]byte]bool),
 		allowSHA256:    make(map[[32]byte]bool),
 		forbidSHA1:     make(map[[20]byte]bool),
 		forbidSHA256:   make(map[[32]byte]bool),
 	}
-	if !permissveMode {
+	if !permissiveMode {
 		for _, allowed := range config.Allow {
 			if allowed.Fingerprints.Sha1 != "" {
 				sha, err := checksum.ParseSHA1(allowed.Fingerprints.Sha1)
@@ -43,7 +43,23 @@ func NewValidator(config Config, permissveMode bool) (*Validator, error) {
 				}
 				v.allowSHA256[sha] = true
 			}
-			// TODO the rest
+		}
+	}
+
+	for _, forbidden := range config.Forbid {
+		if forbidden.Fingerprints.Sha1 != "" {
+			sha, err := checksum.ParseSHA1(forbidden.Fingerprints.Sha1)
+			if err != nil {
+				return nil, err
+			}
+			v.forbidSHA1[sha] = true
+		}
+		if forbidden.Fingerprints.Sha256 != "" {
+			sha, err := checksum.ParseSHA256(forbidden.Fingerprints.Sha256)
+			if err != nil {
+				return nil, err
+			}
+			v.forbidSHA256[sha] = true
 		}
 	}
 	return &v, nil
@@ -63,19 +79,39 @@ func (v *Validator) Validate(certs []certificate.FoundCertificate) (*Result, err
 	result := Result{}
 	for _, fc := range certs {
 		if !v.permissiveMode {
-			// Check we're on allow list
-			if _, ok := v.allowSHA1[fc.FingerprintSha1]; ok {
-				continue
+			if !v.IsAllowed(fc) {
+				result.NotAllowedCertificates = append(result.NotAllowedCertificates, fc)
 			}
-
-			if _, ok := v.allowSHA256[fc.FingerprintSha256]; ok {
-				continue
-			}
-			result.NotAllowedCertificates = append(result.NotAllowedCertificates, fc)
 		}
-		// TODO Check we're not on the forbid list
+		if v.IsForbidden(fc) {
+			result.ForbiddenCertificates = append(result.ForbiddenCertificates, fc)
+		}
 	}
 	// TODO check this required cert is in the found list
 
 	return &result, nil
+}
+
+func (v *Validator) IsAllowed(fc certificate.FoundCertificate) bool {
+	if _, ok := v.allowSHA1[fc.FingerprintSha1]; ok {
+		return true
+	}
+
+	if _, ok := v.allowSHA256[fc.FingerprintSha256]; ok {
+		return true
+	}
+
+	return false
+}
+
+func (v *Validator) IsForbidden(fc certificate.FoundCertificate) bool {
+	if _, ok := v.forbidSHA1[fc.FingerprintSha1]; ok {
+		return true
+	}
+
+	if _, ok := v.forbidSHA256[fc.FingerprintSha256]; ok {
+		return true
+	}
+
+	return false
 }
