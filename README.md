@@ -8,5 +8,5 @@ Paranoia is built by [Jetstack](https://jetstack.io) and made available under th
 ## Usage
 
 ```bash
-$ paranoia inspect quay.io/cert-manager-controller:v1.8.0
+$ paranoia inspect quay.io/jetstack/cert-manager-controller:v1.8.0
 ```
