@@ -23,6 +23,9 @@ func NewValidator(config Config, permissveMode bool) (*Validator, error) {
 		config:         config,
 		permissiveMode: permissveMode,
 		allowSHA1:      make(map[[20]byte]bool),
+		allowSHA256:    make(map[[32]byte]bool),
+		forbidSHA1:     make(map[[20]byte]bool),
+		forbidSHA256:   make(map[[32]byte]bool),
 	}
 	if !permissveMode {
 		for _, allowed := range config.Allow {
@@ -32,6 +35,13 @@ func NewValidator(config Config, permissveMode bool) (*Validator, error) {
 					return nil, err
 				}
 				v.allowSHA1[sha] = true
+			}
+			if allowed.Fingerprints.Sha256 != "" {
+				sha, err := checksum.ParseSHA256(allowed.Fingerprints.Sha256)
+				if err != nil {
+					return nil, err
+				}
+				v.allowSHA256[sha] = true
 			}
 			// TODO the rest
 		}
@@ -50,17 +60,22 @@ func (r *Result) IsPass() bool {
 }
 
 func (v *Validator) Validate(certs []certificate.FoundCertificate) (*Result, error) {
-
+	result := Result{}
 	for _, fc := range certs {
 		if !v.permissiveMode {
-			// TODO Check we're on the allow list
+			// Check we're on allow list
 			if _, ok := v.allowSHA1[fc.FingerprintSha1]; ok {
-				// yay
+				continue
 			}
+
+			if _, ok := v.allowSHA256[fc.FingerprintSha256]; ok {
+				continue
+			}
+			result.NotAllowedCertificates = append(result.NotAllowedCertificates, fc)
 		}
 		// TODO Check we're not on the forbid list
 	}
 	// TODO check this required cert is in the found list
 
-	return &Result{}, nil
+	return &result, nil
 }

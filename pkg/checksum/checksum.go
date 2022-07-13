@@ -14,7 +14,7 @@ func ParseSHA1(s string) ([20]byte, error) {
 		return [20]byte{}, errors.New("incorrect length for SHA1")
 	}
 	var o [20]byte
-	copy(b[:], o[:20])
+	copy(o[:], b[:20])
 	return o, nil
 }
 
@@ -27,6 +27,22 @@ func ParseSHA256(s string) ([32]byte, error) {
 		return [32]byte{}, errors.New("incorrect length for SHA256")
 	}
 	var o [32]byte
-	copy(b[:], o[:32])
+	copy(o[:], b[:32])
 	return o, nil
+}
+
+func MustParseSHA1(s string) [20]byte {
+	o, err := ParseSHA1(s)
+	if err != nil {
+		panic(err)
+	}
+	return o
+}
+
+func MustParseSHA256(s string) [32]byte {
+	o, err := ParseSHA256(s)
+	if err != nil {
+		panic(err)
+	}
+	return o
 }
