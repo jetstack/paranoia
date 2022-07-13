@@ -3,6 +3,8 @@
 package certificate
 
 import (
+	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"github.com/nlepage/go-tarfs"
@@ -12,8 +14,10 @@ import (
 )
 
 type FoundCertificate struct {
-	Location    string
-	Certificate *x509.Certificate
+	Location          string
+	Certificate       *x509.Certificate
+	FingerprintSha1   [20]byte
+	FingerprintSha256 [32]byte
 }
 
 // FindCertificates will scan a container image, given as a file handler to a TAR file, for certificates and return them.
@@ -48,8 +52,10 @@ func FindCertificates(imageTar *os.File) ([]FoundCertificate, error) {
 							return err
 						}
 						foundCerts = append(foundCerts, FoundCertificate{
-							Location:    path,
-							Certificate: cert,
+							Location:          path,
+							Certificate:       cert,
+							FingerprintSha1:   sha1.Sum(block.Bytes),
+							FingerprintSha256: sha256.Sum256(block.Bytes),
 						})
 					}
 				}
