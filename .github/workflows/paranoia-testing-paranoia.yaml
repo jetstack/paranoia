@@ -7,24 +7,17 @@ jobs:
     paranoia-inception:
       runs-on: ubuntu-latest
       steps:
-        - run: echo "$GITHUB_CONTEXT"
-
-
         - name: "Checkout code"
           uses: actions/checkout@v3
-
-        - run: echo $(tree -a)
-        - run: echo $(tree -a ./.github)
-        - run: echo $(cat ${GITHUB_CONTEXT.workspace}/Dockerfile)
 
         - name: "Build container"
           id: "build-and-save"
           run: |
             docker build -t paranoia .
             docker save paranoia > tmp.tar
-            BUILT_CONTAINER=$(cat tmp.tar) 
+            BUILT_CONTAINER_TAR=$(cat tmp.tar) 
 
-            echo "::set-output name=container_tar_content::file://${container_tar_content}"
+            echo "::set-output name=container_tar_content::file://${BUILT_CONTAINER_TAR}"
 
         - name: "Run Paranoia container"
           uses: ./
