@@ -8,9 +8,8 @@ inputs:
     required: false
     default: validate
   target_tar:
-    description: Thing to inspect. Default to target stdin.
-    required: false
-    default: ""
+    description: Thing to inspect. Should be on the format `file://<file>`
+    required: true
 
 runs:
   using: 'docker'
