@@ -1,4 +1,4 @@
-name: Create project
+name: Run Paranoia on Paranoia
 
 on: workflow_dispatch
 
@@ -6,13 +6,22 @@ jobs:
     paranoia-inception:
       runs-on: ubuntu-latest
       steps:
+        - run: echo "$GITHUB_CONTEXT"
+
         - name: "Checkout code"
-          uses: actions/checkout@v3.0
+          uses: actions/checkout@v3
 
         - name: "Build container"
+          id: "build-and-save"
           run: |
             docker build Containerfile
             docker save > tmp.tar
             BUILT_CONTAINER=$(cat tmp.tar) 
-            
-            echo "::set-output name=BUILT_CONTAINER::${BUILT_CONTAINER}"
+
+            echo "::set-output name=TAR_CONTENT::${TAR_CONTENT}"
+
+        - name: "Run Paranoia container"
+          uses: ./.github/actions/paranoia
+          with:
+            action: inspect
+            target: " - ${{steps.build-and-save.outputs.TAR_CONTENT}}"
