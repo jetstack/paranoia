@@ -14,9 +14,6 @@ jobs:
 
         - name: "Build container"
           id: "build-and-save"
-          outputs:
-            container_tar_content:
-              description: "Contains the content of the tar representation of the container"
           run: |
             docker build Containerfile
             docker save > tmp.tar
