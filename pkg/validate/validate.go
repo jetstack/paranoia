@@ -48,6 +48,23 @@ func NewValidator(config Config, permissiveMode bool) (*Validator, error) {
 				v.allowSHA256[sha] = true
 			}
 		}
+
+		for _, required := range config.Require {
+			if required.Fingerprints.Sha1 != "" {
+				sha, err := checksum.ParseSHA1(required.Fingerprints.Sha1)
+				if err != nil {
+					return nil, err
+				}
+				v.allowSHA1[sha] = true
+			}
+			if required.Fingerprints.Sha256 != "" {
+				sha, err := checksum.ParseSHA256(required.Fingerprints.Sha256)
+				if err != nil {
+					return nil, err
+				}
+				v.allowSHA256[sha] = true
+			}
+		}
 	}
 
 	for _, forbidden := range config.Forbid {
