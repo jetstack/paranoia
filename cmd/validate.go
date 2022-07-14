@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -80,8 +81,29 @@ paranoia validate alpine:latest --config some-config.yaml`,
 		}
 
 		if r.IsPass() {
-			println("Passed!")
+			fmt.Printf("Scanned %d certificates in image %s, no issues found.\n", len(foundCerts), imageName)
 		} else {
+			fmt.Printf("Scanned %d certificates in image %s, found issues.\n", len(foundCerts), imageName)
+			for _, na := range r.NotAllowedCertificates {
+				fmt.Printf("Certificate with SHA256 fingerprint %X in location %s was not allowed\n", na.FingerprintSha256, na.Location)
+			}
+			for _, f := range r.ForbiddenCertificates {
+				sb := strings.Builder{}
+				sb.WriteString("Certificate with ")
+				if f.Entry.Fingerprints.Sha1 != "" {
+					sb.WriteString(fmt.Sprintf("SHA1 %X", f.Certificate.FingerprintSha1))
+				} else if f.Entry.Fingerprints.Sha256 != "" {
+					sb.WriteString(fmt.Sprintf("SHA256 %X", f.Certificate.FingerprintSha256))
+				}
+				sb.WriteString(fmt.Sprintf(" in location %s was forbidden!", f.Certificate.Location))
+				if f.Entry.Comment != "" {
+					sb.WriteString(" Comment: ")
+					sb.WriteString(f.Entry.Comment)
+				} else {
+					sb.WriteString(" No comment was provided.")
+				}
+				fmt.Println(sb.String())
+			}
 			println("Failed!")
 			if !warn {
 				os.Exit(1)
