@@ -13,22 +13,22 @@ jobs:
         os: [ linux, darwin ]
         arch: [ amd64, arm64 ]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
+      - uses: actions/checkout@v3
       - name: Go Build
         run: CGO_ENABLED=0 GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -a -installsuffix cgo -o paranoia .
-
       - uses: actions/upload-artifact@v2
         with:
           name: paranoia-${{ matrix.os }}-${{ matrix.arch }}
           path: paranoia
 
   release:
+    needs:
+      - build
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
       - name: Release
         uses: softprops/action-gh-release@v1
