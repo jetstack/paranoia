@@ -15,7 +15,7 @@ jobs:
 
         - run: echo $(tree -a)
         - run: echo $(tree -a ./.github)
-        - run: echo $(cat ~/Dockerfile)
+        - run: echo $(cat ${GITHUB_CONTEXT.workspace}/Dockerfile)
 
         - name: "Build container"
           id: "build-and-save"

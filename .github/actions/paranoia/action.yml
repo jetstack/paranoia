@@ -14,7 +14,7 @@ inputs:
 
 runs:
   using: 'docker'
-  image: "${{ GITHUB_CONTEXT.workspace }}/Dockerfile"
+  image: "${{ $GITHUB_CONTEXT.workspace }}/Dockerfile"
   args:
     - ${{ inputs.action }}
     - "- ${{ inputs.target_tar }}"
