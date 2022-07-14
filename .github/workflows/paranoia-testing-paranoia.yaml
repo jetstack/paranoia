@@ -19,7 +19,7 @@ jobs:
           id: "build-and-save"
           run: |
             docker build -t paranoia .
-            docker save > tmp.tar
+            docker save paranoia > tmp.tar
             BUILT_CONTAINER=$(cat tmp.tar) 
 
             echo "::set-output name=container_tar_content::${container_tar_content}"
