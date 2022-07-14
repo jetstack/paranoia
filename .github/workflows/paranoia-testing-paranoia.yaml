@@ -25,4 +25,4 @@ jobs:
           uses: ./
           with:
             action: inspect
-            target_tar: file://$CONTAINER_TAR
+            target_tar: file://${{ env.CONTAINER_TAR }}
