@@ -17,4 +17,5 @@ runs:
   image: "Dockerfile"
   args:
     - ${{ inputs.action }}
-    - "- ${{ inputs.target_tar }}"
+    - " - "
+    - ${{ inputs.target_tar }}
