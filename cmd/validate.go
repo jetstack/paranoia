@@ -3,13 +3,15 @@
 package cmd
 
 import (
+	"io/ioutil"
+	"os"
+
+	"github.com/spf13/cobra"
+
 	"github.com/jetstack/paranoia/pkg/certificate"
 	"github.com/jetstack/paranoia/pkg/image"
 	"github.com/jetstack/paranoia/pkg/output"
 	"github.com/jetstack/paranoia/pkg/validate"
-	"github.com/spf13/cobra"
-	"io/ioutil"
-	"os"
 )
 
 var validateConfigurationFile string
@@ -19,13 +21,11 @@ var permissive bool
 // validateCmd represents the validate command
 var validateCmd = &cobra.Command{
 	Use:   "validate",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Validate that the certificates in a container image conform to a provided config",
+	Long: `Validate checks the trust bundles found in a given container image against policy
+specified in a given configuration file (.paranoia.yaml by default). For example:
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+paranoia validate alpine:latest --config some-config.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
 		err := output.ValidateOutputMode(OutputMode)
 		if err != nil {
@@ -68,6 +68,22 @@ to quickly create a Cobra application.`,
 		foundCerts, err := certificate.FindCertificates(tmpfile)
 		if err != nil {
 			panic(err)
+		}
+
+		validator, err := validate.NewValidator(*validateConfig, permissive)
+
+		r, err := validator.Validate(foundCerts)
+		if err != nil {
+			panic(err)
+		}
+
+		if r.IsPass() {
+			println("Passed!")
+		} else {
+			println("Failed!")
+			if !warn {
+				os.Exit(1)
+			}
 		}
 
 	},

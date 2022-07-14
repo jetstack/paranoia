@@ -7,10 +7,6 @@ import (
 	"github.com/jetstack/paranoia/pkg/checksum"
 )
 
-type Issue struct {
-	Certificate certificate.FoundCertificate
-}
-
 type Validator struct {
 	config         Config
 	permissiveMode bool
