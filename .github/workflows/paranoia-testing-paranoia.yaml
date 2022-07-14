@@ -27,7 +27,7 @@ jobs:
             echo "::set-output name=container_tar_content::${container_tar_content}"
 
         - name: "Run Paranoia container"
-          uses: ./.github/actions/paranoia
+          uses: ./
           with:
             action: inspect
             target_tar: " - ${{steps.build-and-save.outputs.container_tar_content}}"
