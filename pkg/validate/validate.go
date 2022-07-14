@@ -2,6 +2,7 @@ package validate
 
 import (
 	"encoding/hex"
+	"fmt"
 
 	"github.com/jetstack/paranoia/pkg/certificate"
 	"github.com/jetstack/paranoia/pkg/checksum"
@@ -16,6 +17,19 @@ type Validator struct {
 	forbidSHA256   map[[32]byte]bool
 	requiredSHA1   [][20]byte
 	requiredSHA256 [][32]byte
+}
+
+func (v *Validator) DescribeConfig() string {
+	s := fmt.Sprintf("%d allowed, %d forbidden, and %d required certificates",
+		len(v.allowSHA1)+len(v.allowSHA256),
+		len(v.forbidSHA1)+len(v.forbidSHA256),
+		len(v.requiredSHA1)+len(v.requiredSHA256))
+	if v.permissiveMode {
+		s += ", in permissive mode"
+	} else {
+		s += ", in strict mode"
+	}
+	return s
 }
 
 func NewValidator(config Config, permissiveMode bool) (*Validator, error) {

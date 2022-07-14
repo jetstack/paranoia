@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -37,6 +38,9 @@ paranoia validate alpine:latest --config some-config.yaml`,
 			panic(err)
 		}
 
+		validator, err := validate.NewValidator(*validateConfig, permissive)
+		fmt.Println("Validating certificates with " + validator.DescribeConfig())
+
 		imageName := args[0]
 
 		tmpfile, err := ioutil.TempFile("", "paranoia")
@@ -69,8 +73,6 @@ paranoia validate alpine:latest --config some-config.yaml`,
 		if err != nil {
 			panic(err)
 		}
-
-		validator, err := validate.NewValidator(*validateConfig, permissive)
 
 		r, err := validator.Validate(foundCerts)
 		if err != nil {
