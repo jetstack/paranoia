@@ -2,23 +2,19 @@ name: Paranoia
 description: >
   Scan your Docker images' CA's
 inputs:
-  paranoia-file:
-    description: Location of the Paranoia file
-    required: false
-    default: ""
   action:
     description: Which Paranoia action do you want to take. |
       Available options are `validate`, `export`, `inspect`
     required: false
     default: inspect # or something
-  target:
-    description: Thing to inspect
+  target_tar:
+    description: Thing to inspect. Default to target stdin.
     required: false
     default: " - "
 
 runs:
   using: 'docker'
-  image: '~/Containerfile'
+  image: '~/Dockerfile'
   args:
     - ${{ inputs.action }}
-    - ${{ inputs.target }}
+    - "- ${{ inputs.target_tar }}"
