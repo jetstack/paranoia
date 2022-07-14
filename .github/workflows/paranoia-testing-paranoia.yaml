@@ -3,6 +3,7 @@ name: Run Paranoia on Paranoia
 on: workflow_dispatch
 env:
   GITHUB_CONTEXT: ${{ toJSON(github) }}
+  CONTAINER_TAR: "container.tar"
 jobs:
     paranoia-inception:
       runs-on: ubuntu-latest
@@ -11,14 +12,15 @@ jobs:
           uses: actions/checkout@v3
 
         - name: "Build container"
-          id: "build-and-save"
           run: |
             docker build -t paranoia .
-            docker save paranoia > tmp.tar
-            echo "::set-output name=container_tar::file://tmp.tar"
+
+        - name: "Save container to tar"
+          run: |
+            docker save paranoia > ${CONTAINER_TAR}
 
         - name: "Run Paranoia container"
           uses: ./
           with:
             action: inspect
-            target_tar: ${{steps.build-and-save.outputs.container_tar}}
+            target_tar: file://${CONTAINER_TAR}
