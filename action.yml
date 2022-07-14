@@ -10,6 +10,12 @@ inputs:
   target_tar:
     description: Thing to inspect. Should be on the format `file://<file>`
     required: true
+  paranoia_file:
+    description: |
+      File containing the required, forbidden or allowed CA's
+    default: ".paranoia.yaml"
+    required: false
+
 
 runs:
   using: 'docker'
