@@ -1,0 +1,46 @@
+name: Test & Lint
+
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18.x
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Test
+        run: go test ./...
+
+      - name: Format
+        run: go fmt ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Verify No Changes
+        id: verify-no-changes
+        uses: tj-actions/verify-changed-files@v10
+
+      - name: Fail If Changes
+        if: steps.verify-no-changes.outputs.files_changed == 'true'
+        run: "false"
