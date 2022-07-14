@@ -13,8 +13,8 @@ jobs:
         - name: "Checkout code"
           uses: actions/checkout@v3
 
-        - run: echo $(tree)
-        - run: echo $(ls -la)
+        - run: echo $(tree -a)
+        - run: echo $(tree -a ./.github)
 
         - name: "Build container"
           id: "build-and-save"
