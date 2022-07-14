@@ -1,7 +1,6 @@
 package validate
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/pkg/errors"
 
@@ -142,11 +141,7 @@ func (v *Validator) Validate(certs []certificate.FoundCertificate) (*Result, err
 				return nil, err
 			}
 			if _, ok := sha256checksums[s]; !ok {
-				result.RequiredButAbsent = append(result.RequiredButAbsent, CertificateEntry{
-					Fingerprints: CertificateFingerprints{
-						Sha1: hex.EncodeToString(s[:]),
-					},
-				})
+				result.RequiredButAbsent = append(result.RequiredButAbsent, required)
 			}
 		} else if required.Fingerprints.Sha1 != "" {
 			s, err := checksum.ParseSHA1(required.Fingerprints.Sha1)
@@ -154,11 +149,7 @@ func (v *Validator) Validate(certs []certificate.FoundCertificate) (*Result, err
 				return nil, err
 			}
 			if _, ok := sha1checksums[s]; !ok {
-				result.RequiredButAbsent = append(result.RequiredButAbsent, CertificateEntry{
-					Fingerprints: CertificateFingerprints{
-						Sha1: hex.EncodeToString(s[:]),
-					},
-				})
+				result.RequiredButAbsent = append(result.RequiredButAbsent, required)
 			}
 		}
 	}
