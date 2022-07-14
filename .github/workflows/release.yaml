@@ -30,12 +30,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
+      - name: Debug Helper
+        run: ls -R
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             LICENSE.txt
-            paranoia-darwin-amd64
-            paranoia-darwin-arm64
-            paranoia-linux-amd64
-            paranoia-linux-arm64
+            paranoia-darwin-amd64/paranoia-darwin-amd64
+            paranoia-darwin-arm64/paranoia-darwin-arm64
+            paranoia-linux-amd64/paranoia-linux-amd64
+            paranoia-linux-arm64/paranoia-linux-arm64
