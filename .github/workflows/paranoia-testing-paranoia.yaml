@@ -1,0 +1,18 @@
+name: Create project
+
+on: workflow_dispatch
+
+jobs:
+    paranoia-inception:
+      runs-on: ubuntu-latest
+      steps:
+        - name: "Checkout code"
+          uses: actions/checkout@v3.0
+
+        - name: "Build container"
+          run: |
+            docker build Containerfile
+            docker save > tmp.tar
+            BUILT_CONTAINER=$(cat tmp.tar) 
+            
+            echo "::set-output name=BUILT_CONTAINER::${BUILT_CONTAINER}"
