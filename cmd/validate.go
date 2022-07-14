@@ -104,6 +104,23 @@ paranoia validate alpine:latest --config some-config.yaml`,
 				}
 				fmt.Println(sb.String())
 			}
+			for _, req := range r.RequiredButAbsent {
+				sb := strings.Builder{}
+				sb.WriteString("Certificate with ")
+				if req.Fingerprints.Sha1 != "" {
+					sb.WriteString(fmt.Sprintf("SHA1 %s", req.Fingerprints.Sha1))
+				} else if req.Fingerprints.Sha256 != "" {
+					sb.WriteString(fmt.Sprintf("SHA256 %s", req.Fingerprints.Sha256))
+				}
+				sb.WriteString(" was required, but was not found")
+				if req.Comment != "" {
+					sb.WriteString(" Comment: ")
+					sb.WriteString(req.Comment)
+				} else {
+					sb.WriteString(" No comment was provided.")
+				}
+				fmt.Println(sb.String())
+			}
 			println("Failed!")
 			if !warn {
 				os.Exit(1)
