@@ -19,10 +19,8 @@ jobs:
           run: |
             docker save paranoia > $CONTAINER_TAR
 
-        - run: ls -la
-
         - name: "Run Paranoia container"
           uses: ./
           with:
-            action: inspect
+            action: validate
             target_tar: file://${{ env.CONTAINER_TAR }}
