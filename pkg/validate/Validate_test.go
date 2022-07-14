@@ -121,7 +121,7 @@ func TestValidator(t *testing.T) {
 			r, err := validator.Validate([]certificate.FoundCertificate{forbiddenCert})
 			assert.NoError(t, err)
 			assert.Falsef(t, r.IsPass(), "Validation reported passed, when expected it to fail")
-			assert.Contains(t, r.ForbiddenCertificates, forbiddenCert)
+			assert.Contains(t, r.ForbiddenCertificates, ForbiddenCert{Certificate: forbiddenCert, Entry: config.Forbid[0]})
 		})
 
 		t.Run("Fails on forbidden SHA256", func(t *testing.T) {
@@ -133,7 +133,7 @@ func TestValidator(t *testing.T) {
 			r, err := validator.Validate([]certificate.FoundCertificate{forbiddenCert})
 			assert.NoError(t, err)
 			assert.Falsef(t, r.IsPass(), "Validation reported passed, when expected it to fail")
-			assert.Contains(t, r.ForbiddenCertificates, forbiddenCert)
+			assert.Contains(t, r.ForbiddenCertificates, ForbiddenCert{Certificate: forbiddenCert, Entry: config.Forbid[1]})
 		})
 	})
 
@@ -168,7 +168,7 @@ func TestValidator(t *testing.T) {
 		r, err := validator.Validate([]certificate.FoundCertificate{forbiddenCert})
 		assert.NoError(t, err)
 		assert.Falsef(t, r.IsPass(), "Validation reported passed, when expected it to fail")
-		assert.Contains(t, r.ForbiddenCertificates, forbiddenCert)
+		assert.Contains(t, r.ForbiddenCertificates, ForbiddenCert{Certificate: forbiddenCert, Entry: config.Forbid[0]})
 	})
 
 	t.Run("Require List", func(t *testing.T) {
@@ -178,8 +178,12 @@ func TestValidator(t *testing.T) {
 			Require: []CertificateEntry{
 				{
 					Fingerprints: CertificateFingerprints{
-						Sha1:   requiredSHA1,
 						Sha256: requiredSHA256,
+					},
+				},
+				{
+					Fingerprints: CertificateFingerprints{
+						Sha1: requiredSHA1,
 					},
 				},
 			},
@@ -208,8 +212,8 @@ func TestValidator(t *testing.T) {
 			r, err := validator.Validate([]certificate.FoundCertificate{foundCert})
 			assert.NoError(t, err)
 			assert.Falsef(t, r.IsPass(), "Validation reported as passed, when we expected it to fail")
-			assert.Contains(t, r.RequiredButAbsent, CertificateEntry{CertificateFingerprints{Sha1: requiredSHA1}})
-			assert.Contains(t, r.RequiredButAbsent, CertificateEntry{CertificateFingerprints{Sha256: requiredSHA256}})
+			assert.Contains(t, r.RequiredButAbsent, CertificateEntry{Fingerprints: CertificateFingerprints{Sha1: requiredSHA1}})
+			assert.Contains(t, r.RequiredButAbsent, CertificateEntry{Fingerprints: CertificateFingerprints{Sha256: requiredSHA256}})
 		})
 
 	})
