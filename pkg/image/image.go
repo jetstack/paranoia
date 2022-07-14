@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 func PullAndExport(imageName string, file *os.File) error {
@@ -36,6 +37,15 @@ func PullAndExport(imageName string, file *os.File) error {
 			return err
 		}
 		img, err = crane.Load(t.Name())
+		if err != nil {
+			return err
+		}
+	} else if strings.HasPrefix(imageName, "file://") {
+		var err error
+		img, err = crane.Load(strings.TrimPrefix(imageName, "file://"))
+		if err != nil {
+			return err
+		}
 	} else {
 		var err error
 		img, err = crane.Pull(imageName)
