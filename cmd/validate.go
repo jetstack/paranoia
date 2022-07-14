@@ -124,7 +124,6 @@ paranoia validate alpine:latest --config some-config.yaml`,
 				}
 				fmt.Println(sb.String())
 			}
-			println("Failed!")
 			if !warn {
 				os.Exit(1)
 			}
