@@ -12,9 +12,9 @@ COPY ./pkg pkg
 COPY ./main.go .
 
 # Build the binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o paranoia .
 
 # Build tiny container
 FROM alpine:latest
-COPY --from=builder /go/bin/paranoia .
+COPY --from=builder /go/src/github.com/jetstack/paranoia/paranoia .
 ENTRYPOINT ["paranoia"]
