@@ -17,4 +17,4 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o paranoia .
 # Build tiny container
 FROM alpine:latest
 COPY --from=builder /go/src/github.com/jetstack/paranoia/paranoia .
-ENTRYPOINT ["paranoia"]
+ENTRYPOINT ["/paranoia"]
