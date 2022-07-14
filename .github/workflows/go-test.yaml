@@ -1,4 +1,4 @@
-name: Test & Lint
+name: Test
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - '*'
 
 jobs:
-  lint:
+  test:
     runs-on: ubuntu-latest
 
     steps:
