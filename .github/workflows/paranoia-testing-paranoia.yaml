@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 name: Run Paranoia on Paranoia
 
 on: workflow_dispatch
@@ -7,6 +8,7 @@ jobs:
     paranoia-inception:
       runs-on: ubuntu-latest
       steps:
+<<<<<<< HEAD
         - run: echo "$GITHUB_CONTEXT"
 
 
@@ -24,7 +26,7 @@ jobs:
             docker save paranoia > tmp.tar
             BUILT_CONTAINER=$(cat tmp.tar) 
 
-            echo "::set-output name=container_tar_content::${container_tar_content}"
+            echo "::set-output name=container_tar_content::file://${container_tar_content}"
 
         - name: "Run Paranoia container"
           uses: ./

@@ -6,16 +6,15 @@ inputs:
     description: Which Paranoia action do you want to take. |
       Available options are `validate`, `export`, `inspect`
     required: false
-    default: inspect # or something
+    default: validate
   target_tar:
     description: Thing to inspect. Default to target stdin.
     required: false
-    default: " - "
+    default: ""
 
 runs:
   using: 'docker'
-  image: "Dockerfile"
+  image: 'Dockerfile'
   args:
     - ${{ inputs.action }}
-    - " - "
     - ${{ inputs.target_tar }}
