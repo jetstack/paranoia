@@ -2,23 +2,24 @@ name: Paranoia
 description: >
   Scan your Docker images' CA's
 inputs:
-  paranoia-file:
-    description: Location of the Paranoia file
-    required: false
-    default: .paranoia/default
   action:
     description: Which Paranoia action do you want to take. |
       Available options are `validate`, `export`, `inspect`
     required: false
-    default: inspect # or something
-  target:
-    description: Thing to inspect
+    default: validate
+  target_tar:
+    description: Thing to inspect. Should be on the format `file://<file>`
+    required: true
+  paranoia_file:
+    description: |
+      File containing the required, forbidden or allowed CA's
+    default: ".paranoia.yaml"
     required: false
-    default: quay.io/jetstack/cert-manager-controller:v1.8.0
+
 
 runs:
   using: 'docker'
-  image: 'Containerfile'
+  image: 'Dockerfile'
   args:
     - ${{ inputs.action }}
-    - ${{ inputs.target }}
+    - ${{ inputs.target_tar }}

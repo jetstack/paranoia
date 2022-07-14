@@ -11,10 +11,15 @@ COPY ./cmd cmd
 COPY ./pkg pkg
 COPY ./main.go .
 
+# Setup tmp directory
+RUN mkdir /new_tmp
+
 # Build the binary
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o paranoia .
 
 # Build tiny container
-FROM alpine:latest
+FROM scratch
+COPY --from=builder /new_tmp /tmp
 COPY --from=builder /go/src/github.com/jetstack/paranoia/paranoia .
-ENTRYPOINT ["./paranoia"]
+ADD https://cacerts.digicert.com/DigiCertGlobalRootCA.crt.pem /etc/ssl/certs/DigiCertGlobalRootCA.crt
+ENTRYPOINT ["/paranoia"]
