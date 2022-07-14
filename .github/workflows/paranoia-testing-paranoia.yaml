@@ -15,12 +15,10 @@ jobs:
           run: |
             docker build -t paranoia .
             docker save paranoia > tmp.tar
-            BUILT_CONTAINER_TAR=$(cat tmp.tar) 
-
-            echo "::set-output name=container_tar_content::file://${BUILT_CONTAINER_TAR}"
+            echo "::set-output name=container_tar::file://tmp.tar"
 
         - name: "Run Paranoia container"
           uses: ./
           with:
             action: inspect
-            target_tar: ${{steps.build-and-save.outputs.container_tar_content}}
+            target_tar: ${{steps.build-and-save.outputs.container_tar}}
