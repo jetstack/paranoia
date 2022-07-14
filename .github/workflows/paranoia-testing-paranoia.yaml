@@ -30,4 +30,4 @@ jobs:
           uses: ./.github/actions/paranoia
           with:
             action: inspect
-            target: " - ${{steps.build-and-save.outputs.container_tar_content}}"
+            target_tar: " - ${{steps.build-and-save.outputs.container_tar_content}}"
