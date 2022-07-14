@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ linux, darwin ]
+        arch: [ amd64, arm64 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Go Build
+        run: CGO_ENABLED=0 GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -a -installsuffix cgo -o paranoia .
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: paranoia-${{ matrix.os }}-${{ matrix.arch }}
+          path: paranoia
+
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v3
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            LICENSE.txt
+            paranoia-darwin-amd64
+            paranoia-darwin-arm64
+            paranoia-linux-amd64
+            paranoia-linux-arm64
