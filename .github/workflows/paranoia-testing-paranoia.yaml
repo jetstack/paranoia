@@ -30,4 +30,4 @@ jobs:
           uses: ./
           with:
             action: inspect
-            target_tar: " - ${{steps.build-and-save.outputs.container_tar_content}}"
+            target_tar: ${{steps.build-and-save.outputs.container_tar_content}}
