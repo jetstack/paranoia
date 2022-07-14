@@ -28,18 +28,21 @@ var validateCmd = &cobra.Command{
 specified in a given configuration file (.paranoia.yaml by default). For example:
 
 paranoia validate alpine:latest --config some-config.yaml`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		err := output.ValidateOutputMode(OutputMode)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		validateConfig, err := validate.LoadConfig(validateConfigurationFile)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		validator, err := validate.NewValidator(*validateConfig, permissive)
+		if err != nil {
+			return err
+		}
 		fmt.Println("Validating certificates with " + validator.DescribeConfig())
 
 		imageName := args[0]
@@ -72,12 +75,12 @@ paranoia validate alpine:latest --config some-config.yaml`,
 
 		foundCerts, err := certificate.FindCertificates(tmpfile)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		r, err := validator.Validate(foundCerts)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		if r.IsPass() {
@@ -127,6 +130,7 @@ paranoia validate alpine:latest --config some-config.yaml`,
 			}
 		}
 
+		return nil
 	},
 }
 
