@@ -18,7 +18,7 @@ jobs:
         - name: "Build container"
           id: "build-and-save"
           run: |
-            docker build -t paranoia - Containerfile
+            docker build -t paranoia - ./Containerfile
             docker save > tmp.tar
             BUILT_CONTAINER=$(cat tmp.tar) 
 
