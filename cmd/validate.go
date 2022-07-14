@@ -3,8 +3,10 @@
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -26,16 +28,22 @@ var validateCmd = &cobra.Command{
 specified in a given configuration file (.paranoia.yaml by default). For example:
 
 paranoia validate alpine:latest --config some-config.yaml`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		err := output.ValidateOutputMode(OutputMode)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		validateConfig, err := validate.LoadConfig(validateConfigurationFile)
 		if err != nil {
-			panic(err)
+			return err
 		}
+
+		validator, err := validate.NewValidator(*validateConfig, permissive)
+		if err != nil {
+			return err
+		}
+		fmt.Println("Validating certificates with " + validator.DescribeConfig())
 
 		imageName := args[0]
 
@@ -67,25 +75,62 @@ paranoia validate alpine:latest --config some-config.yaml`,
 
 		foundCerts, err := certificate.FindCertificates(tmpfile)
 		if err != nil {
-			panic(err)
+			return err
 		}
-
-		validator, err := validate.NewValidator(*validateConfig, permissive)
 
 		r, err := validator.Validate(foundCerts)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		if r.IsPass() {
-			println("Passed!")
+			fmt.Printf("Scanned %d certificates in image %s, no issues found.\n", len(foundCerts), imageName)
 		} else {
+			fmt.Printf("Scanned %d certificates in image %s, found issues.\n", len(foundCerts), imageName)
+			for _, na := range r.NotAllowedCertificates {
+				fmt.Printf("Certificate with SHA256 fingerprint %X in location %s was not allowed\n", na.FingerprintSha256, na.Location)
+			}
+			for _, f := range r.ForbiddenCertificates {
+				sb := strings.Builder{}
+				sb.WriteString("Certificate with ")
+				if f.Entry.Fingerprints.Sha1 != "" {
+					sb.WriteString(fmt.Sprintf("SHA1 %X", f.Certificate.FingerprintSha1))
+				} else if f.Entry.Fingerprints.Sha256 != "" {
+					sb.WriteString(fmt.Sprintf("SHA256 %X", f.Certificate.FingerprintSha256))
+				}
+				sb.WriteString(fmt.Sprintf(" in location %s was forbidden!", f.Certificate.Location))
+				if f.Entry.Comment != "" {
+					sb.WriteString(" Comment: ")
+					sb.WriteString(f.Entry.Comment)
+				} else {
+					sb.WriteString(" No comment was provided.")
+				}
+				fmt.Println(sb.String())
+			}
+			for _, req := range r.RequiredButAbsent {
+				sb := strings.Builder{}
+				sb.WriteString("Certificate with ")
+				if req.Fingerprints.Sha1 != "" {
+					sb.WriteString(fmt.Sprintf("SHA1 %s", req.Fingerprints.Sha1))
+				} else if req.Fingerprints.Sha256 != "" {
+					sb.WriteString(fmt.Sprintf("SHA256 %s", req.Fingerprints.Sha256))
+				}
+				sb.WriteString(" was required, but was not found")
+				if req.Comment != "" {
+					sb.WriteString(" Comment: ")
+					sb.WriteString(req.Comment)
+				} else {
+					sb.WriteString(" No comment was provided.")
+				}
+				fmt.Println(sb.String())
+			}
 			println("Failed!")
 			if !warn {
 				os.Exit(1)
 			}
 		}
 
+		return nil
 	},
 }
 
