@@ -9,10 +9,11 @@ jobs:
       steps:
         - run: echo "$GITHUB_CONTEXT"
 
-        - run: echo $(tree)
 
         - name: "Checkout code"
           uses: actions/checkout@v3
+
+        - run: echo $(tree)
 
         - name: "Build container"
           id: "build-and-save"
