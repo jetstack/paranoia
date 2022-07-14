@@ -17,10 +17,12 @@ jobs:
 
         - name: "Save container to tar"
           run: |
-            docker save paranoia > ${CONTAINER_TAR}
+            docker save paranoia > $CONTAINER_TAR
+
+        - run: ls -la
 
         - name: "Run Paranoia container"
           uses: ./
           with:
             action: inspect
-            target_tar: file://${CONTAINER_TAR}
+            target_tar: file://$CONTAINER_TAR
