@@ -1,7 +1,8 @@
 name: Run Paranoia on Paranoia
 
 on: workflow_dispatch
-
+env:
+  GITHUB_CONTEXT: ${{ toJSON(github) }}
 jobs:
     paranoia-inception:
       runs-on: ubuntu-latest
@@ -13,15 +14,18 @@ jobs:
 
         - name: "Build container"
           id: "build-and-save"
+          outputs:
+            container_tar_content:
+              description: "Contains the content of the tar representation of the container"
           run: |
             docker build Containerfile
             docker save > tmp.tar
             BUILT_CONTAINER=$(cat tmp.tar) 
 
-            echo "::set-output name=TAR_CONTENT::${TAR_CONTENT}"
+            echo "::set-output name=container_tar_content::${container_tar_content}"
 
         - name: "Run Paranoia container"
           uses: ./.github/actions/paranoia
           with:
             action: inspect
-            target: " - ${{steps.build-and-save.outputs.TAR_CONTENT}}"
+            target: " - ${{steps.build-and-save.outputs.container_tar_content}}"
