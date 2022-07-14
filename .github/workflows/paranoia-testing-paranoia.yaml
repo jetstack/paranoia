@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 name: Run Paranoia on Paranoia
 
 on: workflow_dispatch
@@ -8,7 +7,6 @@ jobs:
     paranoia-inception:
       runs-on: ubuntu-latest
       steps:
-<<<<<<< HEAD
         - run: echo "$GITHUB_CONTEXT"
 
 
