@@ -10,6 +10,7 @@ import (
 	"github.com/jetstack/paranoia/pkg/certificate"
 	"github.com/jetstack/paranoia/pkg/image"
 	"github.com/jetstack/paranoia/pkg/output"
+	"github.com/pkg/errors"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"io/ioutil"
@@ -20,17 +21,17 @@ import (
 var exportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "Export all certificate data for later use",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		err := output.ValidateOutputMode(OutputMode)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		imageName := args[0]
 
 		tmpfile, err := ioutil.TempFile("", "paranoia")
 		if err != nil {
-			panic(err)
+			return errors.Wrap(err, "failed to open temporary file")
 		}
 		defer func(f *os.File) {
 			err := f.Close()
@@ -45,18 +46,18 @@ var exportCmd = &cobra.Command{
 
 		err = image.PullAndExport(imageName, tmpfile)
 		if err != nil {
-			panic(err)
+			return errors.Wrap(err, "failed to download container image")
 		}
 
 		// We've written to the tmp file, and intend to read from it again, so seek back to the start
 		_, err = tmpfile.Seek(0, 0)
 		if err != nil {
-			panic(err)
+			return errors.Wrap(err, "failed to seek to beginning of exported file")
 		}
 
 		foundCerts, err := certificate.FindCertificates(tmpfile)
 		if err != nil {
-			panic(err)
+			return errors.Wrap(err, "failed to search for certificates in container image")
 		}
 
 		if OutputMode == output.ModePretty {
@@ -92,12 +93,13 @@ var exportCmd = &cobra.Command{
 
 			m, err := json.Marshal(o)
 			if err != nil {
-				panic(err)
+				return errors.Wrap(err, "failed to marshall output JSON")
 			}
 
 			fmt.Println(string(m))
 		}
 
+		return nil
 	},
 }
 
