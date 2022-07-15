@@ -1,17 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package validate
 
 import (
 	"crypto/sha1"
 	"crypto/sha256"
+	"github.com/jetstack/paranoia/pkg/certificate"
+	"github.com/jetstack/paranoia/pkg/checksum"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"strconv"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	"github.com/jetstack/paranoia/pkg/certificate"
-	"github.com/jetstack/paranoia/pkg/checksum"
 )
 
 func TestValidator(t *testing.T) {

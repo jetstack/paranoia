@@ -4,16 +4,15 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
-	"strings"
-
-	"github.com/spf13/cobra"
-
 	"github.com/jetstack/paranoia/pkg/certificate"
 	"github.com/jetstack/paranoia/pkg/image"
 	"github.com/jetstack/paranoia/pkg/output"
 	"github.com/jetstack/paranoia/pkg/validate"
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+	"io/ioutil"
+	"os"
+	"strings"
 )
 
 var validateConfigurationFile string
@@ -36,12 +35,12 @@ paranoia validate alpine:latest --config some-config.yaml`,
 
 		validateConfig, err := validate.LoadConfig(validateConfigurationFile)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "failed to load validator config")
 		}
 
 		validator, err := validate.NewValidator(*validateConfig, permissive)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "failed to initialise validator")
 		}
 		fmt.Println("Validating certificates with " + validator.DescribeConfig())
 

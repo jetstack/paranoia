@@ -1,11 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package validate
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-
 	"github.com/jetstack/paranoia/pkg/certificate"
 	"github.com/jetstack/paranoia/pkg/checksum"
+	"github.com/pkg/errors"
 )
 
 type Validator struct {
