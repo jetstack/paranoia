@@ -87,7 +87,7 @@ Found 132 certificates
 
 ### Global flags
 
-`- --output`: Allows specification of the output mode. Supports `pretty` and `json`. Defaults to `pretty`.
+`-o --output`: Allows specification of the output mode. Supports `pretty` and `json`. Defaults to `pretty`.
 
 ## CI Usage
 
