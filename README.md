@@ -23,7 +23,7 @@ Certificate CN=Hellenic Academic and Research Institutions RootCA 2011,O=Helleni
 Certificate CN=Staat der Nederlanden EV Root CA,O=Staat der Nederlanden,C=NL
 ┗ ⚠️️ expires soon ( expires on 2022-12-08T11:10:28Z, 20 weeks 6 days until expiry)
 Found 132 certificates total, of which 2 had issues
-````
+```
 
 ### Validate
 
@@ -87,7 +87,7 @@ Found 132 certificates
 
 ### Global flags
 
-`-o --output`: Allows specification of the output mode. Supports `pretty` and `json`. Defaults to `pretty`.
+`- --output`: Allows specification of the output mode. Supports `pretty` and `json`. Defaults to `pretty`.
 
 ## CI Usage
 
