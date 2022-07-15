@@ -9,7 +9,7 @@ GitHub action [here](action.yml).
 
 Paranoia is built by [Jetstack](https://jetstack.io) and made available under the Apache 2.0 license, see [LICENSE.txt](LICENSE.txt).
 
-## Usage
+## Command Line Usage
 
 ### Inspect
 
@@ -78,7 +78,6 @@ fingerprint (useful for populating a config file for use with the `validate` com
 $ paranoid export alpine:latest
 File Location                      Owner                                                        Not Before            Not After             SHA-256                                                           
 etc/ssl/certs/ca-certificates.crt  ACCVRAIZ1                                                    2011-05-05T09:37:37Z  2030-12-31T09:37:37Z  9a6ec012e1a7da9dbe34194d478ad7c0db1822fb071df12981496ed104384113  
-etc/ssl/certs/ca-certificates.crt                                                               2008-10-29T15:59:56Z  2030-01-01T00:00:00Z  ebc5570c29018c4d67b1aa127baf12f703b4611ebc17b7dab5573894179b93fa  
 etc/ssl/certs/ca-certificates.crt  AC RAIZ FNMT-RCM SERVIDORES SEGUROS                          2018-12-20T09:37:33Z  2043-12-20T09:37:33Z  554153b13d2cf9ddb753bfbe1a4e0ae08d0aa4187058fe60a2b862b2e4b87bcb  
 ...
 etc/ssl/certs/ca-certificates.crt  vTrus ECC Root CA                                            2018-07-31T07:26:44Z  2043-07-31T07:26:44Z  30fbba2c32238e2a98547af97931e550428b9b3f1c8eeb6633dcfa86c5b27dd3  
@@ -88,4 +87,38 @@ Found 132 certificates
 
 ### Global flags
 
-`- --output`: Allows specification of the output mode. Supports `pretty` and `json`. Defaults to `pretty`.
+`-o --output`: Allows specification of the output mode. Supports `pretty` and `json`. Defaults to `pretty`.
+
+## CI Usage
+
+The functionality of Paranoia is well suited to running in CI pipelines, either producing reports on a schedule or
+as a check before or after the release of a new container image.
+
+Below are some examples:
+
+### GitHub Actions
+
+Paranoia is used on itself after container image build to confirm that it only contains the certificates that we expect.
+The full workflow can be found [here](.github/workflows/publish.yaml).
+
+In it we use our [paranoia action](action.yml) to run the validation, using the `file://` prefix to read the container
+image from a local file, as opposed to pulling it from a container registry:
+
+```yaml
+...
+- name: Build and export to Docker
+  uses: docker/build-push-action@v3
+  with:
+    context: .
+    load: true
+    cache-from: type=gha
+    cache-to: type=gha,mode=max
+    outputs: type=docker,dest=${{ env.CONTAINER_TAR }}
+
+- name: "Run Paranoia container"
+  uses: ./
+  with:
+    action: validate
+    target_tar: file://${{ env.CONTAINER_TAR }}
+...
+```
