@@ -15,8 +15,8 @@ import (
 type NoteLevel string
 
 const (
-	NoteLevelWarn  = "warn"
-	NoteLevelError = "error"
+	NoteLevelWarn  NoteLevel = "warn"
+	NoteLevelError NoteLevel = "error"
 )
 
 type Note struct {
@@ -24,38 +24,53 @@ type Note struct {
 	Reason string
 }
 
-type RemovedCertificate struct {
+type removedCertificate struct {
 	Fingerprint string
 	Comments    string
 }
 
 type Analyser struct {
-	RemovedCertificates []RemovedCertificate
+	RemovedCertificates []removedCertificate
 }
 
+// NewAnalyser creates a new Analyzer using the public Mozilla CA removed certificate list as part of
+// its checks. This method performs HTTP requests to retrieve that list. The request will be made with the given
+// context.
 func NewAnalyser() (*Analyser, error) {
-	resp, err := http.Get("https://ccadb-public.secure.force.com/mozilla/RemovedCACertificateReportCSVFormat")
+	rc, err := downloadMozillaRemovedCACertsList()
 	if err != nil {
 		return nil, err
 	}
+	return &Analyser{RemovedCertificates: rc}, nil
+}
 
+func downloadMozillaRemovedCACertsList() ([]removedCertificate, error) {
+	const mozillaRemovedCACertificateReportURL = "https://ccadb-public.secure.force.com/mozilla/RemovedCACertificateReportCSVFormat"
+
+	resp, err := http.Get(mozillaRemovedCACertificateReportURL)
+	if err != nil {
+		return nil, err
+	}
 	csvReader := csv.NewReader(resp.Body)
-	rc, err := csvReader.ReadAll()
+	csvLines, err := csvReader.ReadAll()
 	if err != nil {
 		return nil, err
 	}
 
-	a := Analyser{RemovedCertificates: make([]RemovedCertificate, len(rc))}
-
-	for i, c := range rc {
-		a.RemovedCertificates[i] = RemovedCertificate{
-			Fingerprint: c[7],
-			Comments:    c[22],
+	removedCerts := make([]removedCertificate, len(csvLines))
+	for i, csvLine := range csvLines {
+		removedCerts[i] = removedCertificate{
+			// From the CSV format that Mozilla publishes, the 8th column (id 7) is the fingerprint and the 23rd column
+			// (id 22) is the comment.
+			Fingerprint: csvLine[7],
+			Comments:    csvLine[22],
 		}
 	}
-	return &a, nil
+	return removedCerts, nil
 }
 
+// AnalyseCertificate takes an X.509 certificate and performs basic analysis. This is intended to highlight any concerns
+// or issues to a user.
 func (an *Analyser) AnalyseCertificate(cert *x509.Certificate) []Note {
 	now := time.Now()
 	sixIshMonthsFromNow := now.Add(time.Hour * 24 * 30 * 6)
