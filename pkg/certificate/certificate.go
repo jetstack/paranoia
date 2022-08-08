@@ -15,20 +15,33 @@ import (
 	"sync"
 )
 
-// Found is a single X.509 certificate which was found be a parser inside the
+// Found is a single X.509 certificate which was found by a parser inside the
 // given image.
 type Found struct {
-	Location          string
-	Parser            string
-	Reason            string
-	Certificate       *x509.Certificate
-	FingerprintSha1   [20]byte
+	// Location is the filepath location where the certificate was found.
+	Location string
+
+	// Parser is the name of the parser which discovered the certificate.
+	Parser string
+
+	// Reason is a human-readable explanation of the certificate, either describe
+	// why it couldn't be parsed or a summary of the parsed certificate.
+	Reason string
+
+	// Certificate is the parsed certificate. May be nil if the parser failed to
+	// decode a found certificate.
+	Certificate *x509.Certificate
+
+	// Fingerprint is the SHA-1 fingerprint of the certificate.
+	FingerprintSha1 [20]byte
+
+	// Fingerprint is the SHA-256 fingerprint of the certificate.
 	FingerprintSha256 [32]byte
 }
 
 type rseekerOpener func() (io.ReadSeeker, error)
 
-// parse is the interface which are implemented by X.509 certificate parsers.
+// parser is the interface implemented by X.509 certificate parsers.
 type parser interface {
 	Find(context.Context, string, rseekerOpener) ([]Found, error)
 }
