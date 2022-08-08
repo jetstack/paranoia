@@ -3,16 +3,15 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"github.com/jetstack/paranoia/pkg/certificate"
-	"github.com/jetstack/paranoia/pkg/image"
+	"os"
+	"strings"
+
 	"github.com/jetstack/paranoia/pkg/output"
 	"github.com/jetstack/paranoia/pkg/validate"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"io/ioutil"
-	"os"
-	"strings"
 )
 
 var validateConfigurationFile string
@@ -46,50 +45,24 @@ paranoia validate alpine:latest --config some-config.yaml`,
 
 		imageName := args[0]
 
-		tmpfile, err := ioutil.TempFile("", "paranoia")
-		if err != nil {
-			panic(err)
-		}
-		defer func(f *os.File) {
-			err := f.Close()
-			if err != nil {
-				panic(err)
-			}
-			err = os.Remove(f.Name())
-			if err != nil {
-				panic(err)
-			}
-		}(tmpfile)
-
-		err = image.PullAndExport(imageName, tmpfile)
-		if err != nil {
-			panic(err)
-		}
-
-		// We've written to the tmp file, and intend to read from it again, so seek back to the start
-		_, err = tmpfile.Seek(0, 0)
-		if err != nil {
-			panic(err)
-		}
-
-		foundCerts, err := certificate.FindCertificates(tmpfile)
+		foundCerts, err := findImageCertificates(context.TODO(), imageName)
 		if err != nil {
 			return err
 		}
 
-		r, err := validator.Validate(foundCerts)
+		validateRes, err := validator.Validate(foundCerts)
 		if err != nil {
 			return err
 		}
 
-		if r.IsPass() {
+		if validateRes.IsPass() {
 			fmt.Printf("Scanned %d certificates in image %s, no issues found.\n", len(foundCerts), imageName)
 		} else {
 			fmt.Printf("Scanned %d certificates in image %s, found issues.\n", len(foundCerts), imageName)
-			for _, na := range r.NotAllowedCertificates {
+			for _, na := range validateRes.NotAllowedCertificates {
 				fmt.Printf("Certificate with SHA256 fingerprint %X in location %s was not allowed\n", na.FingerprintSha256, na.Location)
 			}
-			for _, f := range r.ForbiddenCertificates {
+			for _, f := range validateRes.ForbiddenCertificates {
 				sb := strings.Builder{}
 				sb.WriteString("Certificate with ")
 				if f.Entry.Fingerprints.Sha1 != "" {
@@ -106,7 +79,7 @@ paranoia validate alpine:latest --config some-config.yaml`,
 				}
 				fmt.Println(sb.String())
 			}
-			for _, req := range r.RequiredButAbsent {
+			for _, req := range validateRes.RequiredButAbsent {
 				sb := strings.Builder{}
 				sb.WriteString("Certificate with ")
 				if req.Fingerprints.Sha1 != "" {

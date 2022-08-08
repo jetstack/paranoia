@@ -3,16 +3,14 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+
 	"github.com/fatih/color"
 	"github.com/jetstack/paranoia/pkg/analyse"
-	"github.com/jetstack/paranoia/pkg/certificate"
-	"github.com/jetstack/paranoia/pkg/image"
 	"github.com/jetstack/paranoia/pkg/output"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"io/ioutil"
-	"os"
 )
 
 var inspectCmd = &cobra.Command{
@@ -26,35 +24,9 @@ var inspectCmd = &cobra.Command{
 
 		imageName := args[0]
 
-		tmpfile, err := ioutil.TempFile("", "paranoia")
+		foundCerts, err := findImageCertificates(context.TODO(), imageName)
 		if err != nil {
-			panic(err)
-		}
-		defer func(f *os.File) {
-			err := f.Close()
-			if err != nil {
-				panic(err)
-			}
-			err = os.Remove(f.Name())
-			if err != nil {
-				panic(err)
-			}
-		}(tmpfile)
-
-		err = image.PullAndExport(imageName, tmpfile)
-		if err != nil {
-			return errors.Wrap(err, "failed to download container image")
-		}
-
-		// We've written to the tmp file, and intend to read from it again, so seek back to the start
-		_, err = tmpfile.Seek(0, 0)
-		if err != nil {
-			return errors.Wrap(err, "failed to seek to beginning of exported file")
-		}
-
-		foundCerts, err := certificate.FindCertificates(tmpfile)
-		if err != nil {
-			return errors.Wrap(err, "failed to search for certificates in container image")
+			return err
 		}
 
 		analyser, err := analyse.NewAnalyser()
@@ -63,11 +35,15 @@ var inspectCmd = &cobra.Command{
 		}
 
 		numIssues := 0
-		for _, fc := range foundCerts {
-			notes := analyser.AnalyseCertificate(fc.Certificate)
+		for _, cert := range foundCerts {
+			if cert.Certificate == nil {
+				numIssues++
+				continue
+			}
+			notes := analyser.AnalyseCertificate(cert.Certificate)
 			if len(notes) > 0 {
 				numIssues++
-				fmt.Printf("Certificate %s\n", fc.Certificate.Subject)
+				fmt.Printf("Certificate %s\n", cert.Certificate.Subject)
 				for i, n := range notes {
 					var lead string
 					if i == len(notes)-1 {
