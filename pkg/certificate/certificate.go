@@ -73,7 +73,7 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, error) 
 
 		// Run all parsers.
 		for _, p := range parsers {
-			go func() {
+			go func(p parser) {
 				defer wg.Done()
 				res, err := p.Find(ctx, filepath.Join("/", header.Name), opener)
 				lock.Lock()
@@ -82,7 +82,7 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, error) 
 					errs = append(errs, err.Error())
 				}
 				fileFounds = append(fileFounds, res...)
-			}()
+			}(p)
 		}
 
 		wg.Wait()
