@@ -3,61 +3,34 @@
 package image
 
 import (
-	"github.com/google/go-containerregistry/pkg/crane"
-	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/google/go-containerregistry/pkg/crane"
+	"github.com/google/go-containerregistry/pkg/name"
+	crapi "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/tarball"
 )
 
-func PullAndExport(imageName string, file *os.File) error {
-	var img v1.Image
-	if imageName == "-" {
-		t, err := ioutil.TempFile("", "paranoia_stdin")
-		if err != nil {
-			return err
-		}
-		defer func(f *os.File) {
-			err := f.Close()
-			if err != nil {
-				panic(err)
-			}
-			err = os.Remove(f.Name())
-			if err != nil {
-				panic(err)
-			}
-		}(t)
+var stdinTag name.Tag
 
-		_, err = io.Copy(t, os.Stdin)
-		if err != nil {
-			return err
-		}
-		if err != nil {
-			return err
-		}
-		img, err = crane.Load(t.Name())
-		if err != nil {
-			return err
-		}
-	} else if strings.HasPrefix(imageName, "file://") {
-		var err error
-		img, err = crane.Load(strings.TrimPrefix(imageName, "file://"))
-		if err != nil {
-			return err
-		}
-	} else {
-		var err error
-		img, err = crane.Pull(imageName)
-		if err != nil {
-			return err
-		}
-	}
-
-	err := crane.Export(img, file)
+func init() {
+	var err error
+	stdinTag, err = name.NewTag("stdin")
 	if err != nil {
-		return err
+		panic("failed to build stdin tag: " + err.Error())
 	}
+}
 
-	return nil
+func PullAndLoad(name string) (crapi.Image, error) {
+	name = strings.TrimSpace(name)
+	switch {
+	case name == "-":
+		return tarball.Image(func() (io.ReadCloser, error) { return os.Stdin, nil }, &stdinTag)
+	case strings.HasPrefix(name, "file://"):
+		return crane.Load(strings.TrimPrefix(name, "file://"))
+	default:
+		return crane.Pull(name)
+	}
 }
