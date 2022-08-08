@@ -6,7 +6,6 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/google/go-containerregistry v0.11.0
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
-	github.com/nlepage/go-tarfs v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/rodaine/table v1.0.1
 	github.com/spf13/cobra v1.5.0
