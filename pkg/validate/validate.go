@@ -4,6 +4,7 @@ package validate
 
 import (
 	"fmt"
+
 	"github.com/jetstack/paranoia/pkg/certificate"
 	"github.com/jetstack/paranoia/pkg/checksum"
 	"github.com/pkg/errors"
@@ -99,12 +100,12 @@ func NewValidator(config Config, permissiveMode bool) (*Validator, error) {
 }
 
 type ForbiddenCert struct {
-	Certificate certificate.FoundCertificate
+	Certificate certificate.Found
 	Entry       CertificateEntry
 }
 
 type Result struct {
-	NotAllowedCertificates []certificate.FoundCertificate
+	NotAllowedCertificates []certificate.Found
 	ForbiddenCertificates  []ForbiddenCert
 	RequiredButAbsent      []CertificateEntry
 }
@@ -113,22 +114,25 @@ func (r *Result) IsPass() bool {
 	return r != nil && len(r.ForbiddenCertificates) == 0 && len(r.NotAllowedCertificates) == 0 && len(r.RequiredButAbsent) == 0
 }
 
-func (v *Validator) Validate(certs []certificate.FoundCertificate) (*Result, error) {
-	result := Result{}
+func (v *Validator) Validate(founds []certificate.Found) (Result, error) {
+	var result Result
+
 	sha1checksums := make(map[[20]byte]bool)
 	sha256checksums := make(map[[32]byte]bool)
-	for _, fc := range certs {
-		sha1checksums[fc.FingerprintSha1] = true
-		sha256checksums[fc.FingerprintSha256] = true
+
+	for _, cert := range founds {
+		sha1checksums[cert.FingerprintSha1] = true
+		sha256checksums[cert.FingerprintSha256] = true
+
 		if !v.permissiveMode {
-			if !v.IsAllowed(fc) {
-				result.NotAllowedCertificates = append(result.NotAllowedCertificates, fc)
+			if !v.IsAllowed(cert) {
+				result.NotAllowedCertificates = append(result.NotAllowedCertificates, cert)
 			}
 		}
 
-		if b, ce := v.IsForbidden(fc); b {
+		if b, ce := v.IsForbidden(cert); b {
 			result.ForbiddenCertificates = append(result.ForbiddenCertificates, ForbiddenCert{
-				Certificate: fc,
+				Certificate: cert,
 				Entry:       *ce,
 			})
 		}
@@ -139,7 +143,7 @@ func (v *Validator) Validate(certs []certificate.FoundCertificate) (*Result, err
 		if required.Fingerprints.Sha256 != "" {
 			s, err := checksum.ParseSHA256(required.Fingerprints.Sha256)
 			if err != nil {
-				return nil, err
+				return Result{}, err
 			}
 			if _, ok := sha256checksums[s]; !ok {
 				result.RequiredButAbsent = append(result.RequiredButAbsent, required)
@@ -147,7 +151,7 @@ func (v *Validator) Validate(certs []certificate.FoundCertificate) (*Result, err
 		} else if required.Fingerprints.Sha1 != "" {
 			s, err := checksum.ParseSHA1(required.Fingerprints.Sha1)
 			if err != nil {
-				return nil, err
+				return Result{}, err
 			}
 			if _, ok := sha1checksums[s]; !ok {
 				result.RequiredButAbsent = append(result.RequiredButAbsent, required)
@@ -155,27 +159,27 @@ func (v *Validator) Validate(certs []certificate.FoundCertificate) (*Result, err
 		}
 	}
 
-	return &result, nil
+	return result, nil
 }
 
-func (v *Validator) IsAllowed(fc certificate.FoundCertificate) bool {
-	if _, ok := v.allowSHA1[fc.FingerprintSha1]; ok {
+func (v *Validator) IsAllowed(result certificate.Found) bool {
+	if _, ok := v.allowSHA1[result.FingerprintSha1]; ok {
 		return true
 	}
 
-	if _, ok := v.allowSHA256[fc.FingerprintSha256]; ok {
+	if _, ok := v.allowSHA256[result.FingerprintSha256]; ok {
 		return true
 	}
 
 	return false
 }
 
-func (v *Validator) IsForbidden(fc certificate.FoundCertificate) (bool, *CertificateEntry) {
-	if ce, ok := v.forbidSHA1[fc.FingerprintSha1]; ok {
+func (v *Validator) IsForbidden(result certificate.Found) (bool, *CertificateEntry) {
+	if ce, ok := v.forbidSHA1[result.FingerprintSha1]; ok {
 		return true, &ce
 	}
 
-	if ce, ok := v.forbidSHA256[fc.FingerprintSha256]; ok {
+	if ce, ok := v.forbidSHA256[result.FingerprintSha256]; ok {
 		return true, &ce
 	}
 

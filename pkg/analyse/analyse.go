@@ -7,9 +7,10 @@ import (
 	"crypto/x509"
 	"encoding/csv"
 	"fmt"
-	"github.com/hako/durafmt"
 	"net/http"
 	"time"
+
+	"github.com/hako/durafmt"
 )
 
 type NoteLevel string
