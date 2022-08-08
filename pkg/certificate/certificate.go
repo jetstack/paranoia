@@ -3,65 +3,142 @@
 package certificate
 
 import (
-	"crypto/sha1"
-	"crypto/sha256"
+	"archive/tar"
+	"bytes"
+	"context"
 	"crypto/x509"
-	"encoding/pem"
-	"github.com/nlepage/go-tarfs"
-	"io/fs"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 )
 
-type FoundCertificate struct {
+// Found is a single X.509 certificate which was found be a parser inside the
+// given image.
+type Found struct {
 	Location          string
+	Parser            string
+	Reason            string
 	Certificate       *x509.Certificate
 	FingerprintSha1   [20]byte
 	FingerprintSha256 [32]byte
 }
 
+type rseekerOpener func() (io.ReadSeeker, error)
+
+// parse is the interface which are implemented by X.509 certificate parsers.
+type parser interface {
+	Find(context.Context, string, rseekerOpener) ([]Found, error)
+}
+
 // FindCertificates will scan a container image, given as a file handler to a TAR file, for certificates and return them.
-func FindCertificates(imageTar *os.File) ([]FoundCertificate, error) {
-	tfs, err := tarfs.New(imageTar)
-	if err != nil {
-		return nil, err
+func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, error) {
+	var (
+		parsers = []parser{pem{}}
+		founds  []Found
+	)
+
+	tz := tar.NewReader(imageTar)
+
+	for {
+		header, err := tz.Next()
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		// If file is not a regular file, ignore.
+		if header.Typeflag != tar.TypeReg {
+			continue
+		}
+
+		opener, oCleanup, err := openerForFile(ctx, header, tz)
+		if err != nil {
+			return nil, err
+		}
+
+		var (
+			wg         sync.WaitGroup
+			lock       sync.Mutex
+			errs       []string
+			fileFounds []Found
+		)
+
+		wg.Add(len(parsers))
+
+		// Run all parsers.
+		for _, p := range parsers {
+			go func() {
+				defer wg.Done()
+				res, err := p.Find(ctx, filepath.Join("/", header.Name), opener)
+				lock.Lock()
+				defer lock.Unlock()
+				if err != nil {
+					errs = append(errs, err.Error())
+				}
+				fileFounds = append(fileFounds, res...)
+			}()
+		}
+
+		wg.Wait()
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+
+		if err := oCleanup(); err != nil {
+			errs = append(errs, err.Error())
+		}
+
+		if len(fileFounds) > 0 {
+			founds = append(founds, fileFounds...)
+		}
+
+		if len(errs) > 0 {
+			return founds, fmt.Errorf("parser error finding certificates: %s", strings.Join(errs, "; "))
+		}
 	}
 
-	var foundCerts []FoundCertificate
+	return founds, nil
+}
 
-	err = fs.WalkDir(tfs, ".", func(path string, d fs.DirEntry, err error) error {
+// openerForFile returns an rseekerOpener and clean-up function for the given
+// tarball file. Depending of the size of the file, the ReadSeeker will
+// ordinate from an in-memory buffer, or a temporary file.
+func openerForFile(ctx context.Context, header *tar.Header, reader io.Reader) (rseekerOpener, func() error, error) {
+	// If file is larger than a Gig, write to a temporary file.
+	if header.Size > (1 << 30) {
+		tmp, err := os.CreateTemp(os.TempDir(), strings.ReplaceAll(filepath.Clean(header.Name), string(filepath.Separator), "-"))
 		if err != nil {
-			return err
+			return nil, nil, fmt.Errorf("failed to create temporary file: %w", err)
 		}
-		if filepath.Ext(path) == ".crt" {
-			data, err := fs.ReadFile(tfs, path)
-			if err != nil {
-				return err
-			}
 
-			var block *pem.Block
-			finished := false
-			for !finished {
-				block, data = pem.Decode(data)
-				if block == nil {
-					finished = true
-				} else {
-					if block.Type == "CERTIFICATE" {
-						cert, err := x509.ParseCertificate(block.Bytes)
-						if err != nil {
-							return err
-						}
-						foundCerts = append(foundCerts, FoundCertificate{
-							Location:          path,
-							Certificate:       cert,
-							FingerprintSha1:   sha1.Sum(block.Bytes),
-							FingerprintSha256: sha256.Sum256(block.Bytes),
-						})
-					}
-				}
-			}
+		if _, err := io.Copy(tmp, reader); err != nil {
+			return nil, nil, fmt.Errorf("failed to write image file to temporary file: %w", err)
 		}
-		return nil
-	})
-	return foundCerts, err
+
+		if err := tmp.Close(); err != nil {
+			return nil, nil, fmt.Errorf("failed to close temporary file: %w", err)
+		}
+
+		return func() (io.ReadSeeker, error) {
+			return os.Open(tmp.Name())
+		}, func() error { return os.Remove(tmp.Name()) }, nil
+	} else {
+		// Simple in-memory buffer.
+		ff, err := io.ReadAll(reader)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to read image file: %w", err)
+		}
+		return func() (io.ReadSeeker, error) {
+			return bytes.NewReader(ff), nil
+		}, func() error { return nil }, nil
+	}
 }
