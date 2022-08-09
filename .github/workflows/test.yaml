@@ -44,3 +44,27 @@ jobs:
       - name: Fail If Changes
         if: steps.verify-no-changes.outputs.files_changed == 'true'
         run: "false"
+  integration-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18.x
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install
+        run: go install .
+
+      - name: Export Command Test
+        run: it/export.sh
