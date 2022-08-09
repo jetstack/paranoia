@@ -13,7 +13,7 @@ import (
 	crapi "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/pkg/errors"
 
-	"github.com/jetstack/paranoia/pkg/certificate"
+	"github.com/jetstack/paranoia/internal/certificate"
 )
 
 // FindImageCertificate will pull or load the image with the given name, scan
