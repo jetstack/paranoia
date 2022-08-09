@@ -2,7 +2,7 @@
 
 package main
 
-import "github.com/jetstack/paranoia/cmd"
+import "github.com/jetstack/paranoia/internal/cmd"
 
 func main() {
 	cmd.Execute()

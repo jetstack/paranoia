@@ -5,9 +5,10 @@ package validate
 import (
 	"fmt"
 
-	"github.com/jetstack/paranoia/pkg/certificate"
-	"github.com/jetstack/paranoia/pkg/checksum"
 	"github.com/pkg/errors"
+
+	"github.com/jetstack/paranoia/internal/certificate"
+	"github.com/jetstack/paranoia/internal/util/checksum"
 )
 
 type Validator struct {
