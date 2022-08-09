@@ -8,6 +8,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/jetstack/paranoia/pkg/analyse"
+	"github.com/jetstack/paranoia/pkg/image"
 	"github.com/jetstack/paranoia/pkg/output"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -24,7 +25,7 @@ var inspectCmd = &cobra.Command{
 
 		imageName := args[0]
 
-		foundCerts, err := findImageCertificates(context.TODO(), imageName)
+		foundCerts, err := image.FindImageCertificates(context.TODO(), imageName)
 		if err != nil {
 			return err
 		}

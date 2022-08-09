@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/jetstack/paranoia/pkg/image"
 	"github.com/jetstack/paranoia/pkg/output"
 	"github.com/jetstack/paranoia/pkg/validate"
 	"github.com/pkg/errors"
@@ -45,7 +46,7 @@ paranoia validate alpine:latest --config some-config.yaml`,
 
 		imageName := args[0]
 
-		foundCerts, err := findImageCertificates(context.TODO(), imageName)
+		foundCerts, err := image.FindImageCertificates(context.TODO(), imageName)
 		if err != nil {
 			return err
 		}

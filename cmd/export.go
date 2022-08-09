@@ -14,6 +14,7 @@ import (
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 
+	"github.com/jetstack/paranoia/pkg/image"
 	"github.com/jetstack/paranoia/pkg/output"
 )
 
@@ -28,7 +29,7 @@ var exportCmd = &cobra.Command{
 
 		imageName := args[0]
 
-		foundCerts, err := findImageCertificates(context.TODO(), imageName)
+		foundCerts, err := image.FindImageCertificates(context.TODO(), imageName)
 		if err != nil {
 			return err
 		}
