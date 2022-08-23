@@ -39,7 +39,7 @@ jobs:
 
       - name: Verify No Changes
         id: verify-no-changes
-        uses: tj-actions/verify-changed-files@v10
+        uses: tj-actions/verify-changed-files@v11
 
       - name: Fail If Changes
         if: steps.verify-no-changes.outputs.files_changed == 'true'
