@@ -5,9 +5,10 @@ package validate
 import (
 	"errors"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
 var ExpectedVersion = "1"

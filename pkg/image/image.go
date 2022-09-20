@@ -3,61 +3,77 @@
 package image
 
 import (
-	"github.com/google/go-containerregistry/pkg/crane"
-	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"context"
+	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/google/go-containerregistry/pkg/crane"
+	crapi "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/pkg/errors"
+
+	"github.com/jetstack/paranoia/pkg/certificate"
 )
 
-func PullAndExport(imageName string, file *os.File) error {
-	var img v1.Image
-	if imageName == "-" {
-		t, err := ioutil.TempFile("", "paranoia_stdin")
-		if err != nil {
-			return err
-		}
-		defer func(f *os.File) {
-			err := f.Close()
-			if err != nil {
-				panic(err)
-			}
-			err = os.Remove(f.Name())
-			if err != nil {
-				panic(err)
-			}
-		}(t)
+// FindImageCertificate will pull or load the image with the given name, scan
+// for X.509 certificates, and return the result.
+func FindImageCertificates(ctx context.Context, name string) ([]certificate.Found, error) {
+	name = strings.TrimSpace(name)
 
-		_, err = io.Copy(t, os.Stdin)
+	var (
+		img crapi.Image
+		err error
+	)
+	switch {
+	case name == "-":
+		var f *os.File
+		f, err = os.CreateTemp(os.TempDir(), "paranoia-")
 		if err != nil {
-			return err
+			return nil, fmt.Errorf("failed to create temporary file: %w", err)
 		}
-		if err != nil {
-			return err
+		defer os.RemoveAll(f.Name())
+
+		if _, err := io.Copy(f, os.Stdin); err != nil {
+			return nil, fmt.Errorf("failed to write image to temporary file: %w", err)
 		}
-		img, err = crane.Load(t.Name())
-		if err != nil {
-			return err
+
+		if err := f.Close(); err != nil {
+			return nil, fmt.Errorf("failed to close temporary file: %w", err)
 		}
-	} else if strings.HasPrefix(imageName, "file://") {
-		var err error
-		img, err = crane.Load(strings.TrimPrefix(imageName, "file://"))
-		if err != nil {
-			return err
-		}
-	} else {
-		var err error
-		img, err = crane.Pull(imageName)
-		if err != nil {
-			return err
-		}
+
+		img, err = crane.Load(f.Name())
+	case strings.HasPrefix(name, "file://"):
+		img, err = crane.Load(strings.TrimPrefix(name, "file://"))
+	default:
+		img, err = crane.Pull(name)
 	}
-
-	err := crane.Export(img, file)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("failed to load image: %w", err)
 	}
 
-	return nil
+	var exportErr error
+	exportDone := make(chan struct{})
+	r, w := io.Pipe()
+	defer r.Close()
+	defer w.Close()
+
+	go func() {
+		if err := crane.Export(img, w); err != nil {
+			exportErr = err
+		}
+		close(exportDone)
+	}()
+
+	foundCerts, err := certificate.FindCertificates(context.TODO(), r)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to search for certificates in container image")
+	}
+
+	<-exportDone
+	if exportErr != nil {
+		return nil, errors.Wrap(err, "error when exporting image")
+	}
+
+	return foundCerts, nil
 }
