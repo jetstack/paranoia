@@ -64,7 +64,7 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Install
-        run: go install ./cmd
+        run: go install .
 
       - name: Export Command Test
         run: it/export.sh

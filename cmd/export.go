@@ -14,7 +14,7 @@ import (
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 
-	"github.com/jetstack/paranoia/internal/cmd/options"
+	"github.com/jetstack/paranoia/cmd/options"
 	"github.com/jetstack/paranoia/internal/image"
 	"github.com/jetstack/paranoia/internal/output"
 )

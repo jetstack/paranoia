@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
+	"github.com/jetstack/paranoia/cmd/options"
 	"github.com/jetstack/paranoia/internal/analyse"
-	"github.com/jetstack/paranoia/internal/cmd/options"
 	"github.com/jetstack/paranoia/internal/image"
 )
 

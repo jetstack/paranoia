@@ -7,6 +7,7 @@ COPY ./go.sum ./
 RUN go mod download
 
 # Copy the files into the container
+COPY main.go main.go
 COPY ./cmd cmd
 COPY ./internal internal
 
@@ -14,7 +15,7 @@ COPY ./internal internal
 RUN mkdir /new_tmp
 
 # Build the binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o paranoia ./cmd
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o paranoia .
 
 # Build tiny container
 FROM scratch
