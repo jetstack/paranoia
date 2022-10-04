@@ -7,9 +7,9 @@ COPY ./go.sum ./
 RUN go mod download
 
 # Copy the files into the container
+COPY main.go main.go
 COPY ./cmd cmd
-COPY ./pkg pkg
-COPY ./main.go .
+COPY ./internal internal
 
 # Setup tmp directory
 RUN mkdir /new_tmp

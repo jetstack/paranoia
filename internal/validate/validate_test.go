@@ -9,10 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jetstack/paranoia/pkg/certificate"
-	"github.com/jetstack/paranoia/pkg/checksum"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jetstack/paranoia/internal/certificate"
+	"github.com/jetstack/paranoia/internal/util/checksum"
 )
 
 func TestValidator(t *testing.T) {

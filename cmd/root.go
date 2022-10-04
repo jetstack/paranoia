@@ -3,30 +3,32 @@
 package cmd
 
 import (
-	"github.com/jetstack/paranoia/pkg/output"
-	"github.com/spf13/cobra"
+	"context"
+	"fmt"
 	"os"
-	"strings"
+
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "paranoia",
-	Short: "Inspect container image trust bundles",
-	Long:  `Paranoia is a CLI tool to inspect the trust bundles present in a container image.`,
+func newRoot(ctx context.Context) *cobra.Command {
+	root := &cobra.Command{
+		Use:   "paranoia",
+		Short: "Inspect container image trust bundles",
+		Long:  `Paranoia is a CLI tool to inspect the trust bundles present in a container image.`,
+	}
+
+	root.AddCommand(newExport(ctx))
+	root.AddCommand(newInspect(ctx))
+	root.AddCommand(newValidation(ctx))
+
+	return root
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
+	ctx := signals.SetupSignalHandler()
+	if err := newRoot(ctx).Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-}
-
-var OutputMode string
-
-func init() {
-	rootCmd.PersistentFlags().StringVarP(&OutputMode, "output", "o", "pretty", "Output mode. Supported modes: "+strings.Join(output.Modes, ", "))
 }
