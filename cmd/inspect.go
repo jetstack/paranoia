@@ -25,7 +25,7 @@ func newInspect(ctx context.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			imageName := args[0]
 
-			foundCerts, err := image.FindImageCertificates(ctx, imageName)
+			foundCerts, partialCerts, err := image.FindImageCertificates(ctx, imageName)
 			if err != nil {
 				return err
 			}
@@ -66,6 +66,13 @@ func newInspect(ctx context.Context) *cobra.Command {
 				}
 			}
 			fmt.Printf("Found %d certificates total, of which %d had issues\n", len(foundCerts), numIssues)
+			if len(partialCerts) > 0 {
+				for _, p := range partialCerts {
+					fmtFn := color.New(color.FgYellow).SprintfFunc()
+					fmt.Printf(fmtFn("⚠️ Partial certificate found in file %s: %s\n", p.Location, p.Reason))
+				}
+				fmt.Printf("Found %d partial certificates\n", len(partialCerts))
+			}
 
 			return nil
 		},

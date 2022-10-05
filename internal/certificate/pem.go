@@ -21,14 +21,14 @@ type pem struct{}
 // header. Once found, it attempts to find the end footer. Even if the end
 // footer is not found, a Certificate is still recorded, but marked as not
 // correctly decoded.
-func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Found, error) {
+func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Found, []Partial, error) {
 	ignored := []byte{'\n', '\t', '\r', ' ', '\f', '\v', '\b', '\x00', '"', '\''}
 	pemStart := []byte("-----BEGIN CERTIFICATE-----")
 	pemEnd := []byte("-----END CERTIFICATE-----")
 
 	file, err := rs()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var (
@@ -37,6 +37,8 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 		// results is the end result of the found certificates for this file
 		// location.
 		results []Found
+		// partials is the list of partial certificates found
+		partials []Partial
 		// Current is the current successfully decoded certificate buffer. Starts
 		// empty until we start to scan with a successful header.
 		current []byte
@@ -51,13 +53,13 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 
 		// Exit if we encounter an error reading from file.
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		// If  context has been cancelled, exit scanning.
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, nil, ctx.Err()
 		default:
 		}
 
@@ -94,13 +96,13 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 					break
 				}
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 
 				// Again, check context.
 				select {
 				case <-ctx.Done():
-					return nil, ctx.Err()
+					return nil, nil, ctx.Err()
 				default:
 				}
 
@@ -141,6 +143,7 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 			// to the end of the file, or we matched on the footer.
 
 			var (
+				valid    bool
 				reason   string
 				cert     *x509.Certificate
 				fpsha1   [20]byte
@@ -154,35 +157,47 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 
 				if block == nil {
 					reason = fmt.Sprintf("a block of data looks like a PEM certificate, but cannot be decoded")
+					valid = false
 				} else {
 					cert, err = x509.ParseCertificate(block.Bytes)
 					if err != nil {
 						reason = fmt.Sprintf("failed to parse PEM certificate: %s", err)
+						valid = false
 					} else {
-						reason = cert.Subject.String()
 						fpsha1 = sha1.Sum(block.Bytes)
 						fpsha256 = sha256.Sum256(block.Bytes)
+						valid = true
 					}
 				}
 			} else {
 				// If we didn't actually decode an entire certificate, then set an
 				// appropriate reason, and reset the file so we can re-scan.
 				reason = "found start of PEM encoded certificate, but could not find end"
+				valid = false
 				if _, err := file.Seek(-int64(len(current)-len(pemStart)+1), io.SeekCurrent); err != nil {
-					return nil, fmt.Errorf("failed to seek: %w", err)
+					return nil, nil, fmt.Errorf("failed to seek: %w", err)
 				}
 			}
 
 			// Capture result.
-			results = append(results, Found{
-				Location: location,
-				Parser:   "pem",
-				Reason:   reason, Certificate: cert,
-				FingerprintSha1: fpsha1, FingerprintSha256: fpsha256,
-			})
+			if valid {
+				results = append(results, Found{
+					Location:          location,
+					Parser:            "pem",
+					Certificate:       cert,
+					FingerprintSha1:   fpsha1,
+					FingerprintSha256: fpsha256,
+				})
+			} else {
+				partials = append(partials, Partial{
+					Location: location,
+					Parser:   "pem",
+					Reason:   reason,
+				})
+			}
 			current = current[:0]
 		}
 	}
 
-	return results, nil
+	return results, partials, nil
 }

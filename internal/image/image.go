@@ -16,9 +16,9 @@ import (
 	"github.com/jetstack/paranoia/internal/certificate"
 )
 
-// FindImageCertificate will pull or load the image with the given name, scan
+// FindImageCertificates will pull or load the image with the given name, scan
 // for X.509 certificates, and return the result.
-func FindImageCertificates(ctx context.Context, name string) ([]certificate.Found, error) {
+func FindImageCertificates(ctx context.Context, name string) ([]certificate.Found, []certificate.Partial, error) {
 	name = strings.TrimSpace(name)
 
 	var (
@@ -30,16 +30,16 @@ func FindImageCertificates(ctx context.Context, name string) ([]certificate.Foun
 		var f *os.File
 		f, err = os.CreateTemp(os.TempDir(), "paranoia-")
 		if err != nil {
-			return nil, fmt.Errorf("failed to create temporary file: %w", err)
+			return nil, nil, fmt.Errorf("failed to create temporary file: %w", err)
 		}
 		defer os.RemoveAll(f.Name())
 
 		if _, err := io.Copy(f, os.Stdin); err != nil {
-			return nil, fmt.Errorf("failed to write image to temporary file: %w", err)
+			return nil, nil, fmt.Errorf("failed to write image to temporary file: %w", err)
 		}
 
 		if err := f.Close(); err != nil {
-			return nil, fmt.Errorf("failed to close temporary file: %w", err)
+			return nil, nil, fmt.Errorf("failed to close temporary file: %w", err)
 		}
 
 		img, err = crane.Load(f.Name())
@@ -49,7 +49,7 @@ func FindImageCertificates(ctx context.Context, name string) ([]certificate.Foun
 		img, err = crane.Pull(name)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to load image: %w", err)
+		return nil, nil, fmt.Errorf("failed to load image: %w", err)
 	}
 
 	var exportErr error
@@ -65,15 +65,15 @@ func FindImageCertificates(ctx context.Context, name string) ([]certificate.Foun
 		close(exportDone)
 	}()
 
-	foundCerts, err := certificate.FindCertificates(context.TODO(), r)
+	foundCerts, foundPartials, err := certificate.FindCertificates(context.TODO(), r)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to search for certificates in container image")
+		return nil, nil, errors.Wrap(err, "failed to search for certificates in container image")
 	}
 
 	<-exportDone
 	if exportErr != nil {
-		return nil, errors.Wrap(err, "error when exporting image")
+		return nil, nil, errors.Wrap(err, "error when exporting image")
 	}
 
-	return foundCerts, nil
+	return foundCerts, foundPartials, nil
 }

@@ -24,10 +24,6 @@ type Found struct {
 	// Parser is the name of the parser which discovered the certificate.
 	Parser string
 
-	// Reason is a human-readable explanation of the certificate, either describe
-	// why it couldn't be parsed or a summary of the parsed certificate.
-	Reason string
-
 	// Certificate is the parsed certificate. May be nil if the parser failed to
 	// decode a found certificate.
 	Certificate *x509.Certificate
@@ -39,18 +35,31 @@ type Found struct {
 	FingerprintSha256 [32]byte
 }
 
+type Partial struct {
+	// Location is the filepath location where the certificate was found.
+	Location string
+
+	// Parser is the name of the parser which discovered the certificate.
+	Parser string
+
+	// Reason is a human-readable explanation of the certificate, either describe
+	// why it couldn't be parsed or a summary of the parsed certificate.
+	Reason string
+}
+
 type rseekerOpener func() (io.ReadSeeker, error)
 
 // parser is the interface implemented by X.509 certificate parsers.
 type parser interface {
-	Find(context.Context, string, rseekerOpener) ([]Found, error)
+	Find(context.Context, string, rseekerOpener) ([]Found, []Partial, error)
 }
 
 // FindCertificates will scan a container image, given as a file handler to a TAR file, for certificates and return them.
-func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, error) {
+func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, []Partial, error) {
 	var (
-		parsers = []parser{pem{}}
-		founds  []Found
+		parsers  = []parser{pem{}}
+		founds   []Found
+		partials []Partial
 	)
 
 	tz := tar.NewReader(imageTar)
@@ -62,7 +71,7 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, error) 
 		}
 
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		// If file is not a regular file, ignore.
@@ -72,14 +81,15 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, error) 
 
 		opener, oCleanup, err := openerForFile(ctx, header, tz)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		var (
-			wg         sync.WaitGroup
-			lock       sync.Mutex
-			errs       []string
-			fileFounds []Found
+			wg           sync.WaitGroup
+			lock         sync.Mutex
+			errs         []string
+			fileFounds   []Found
+			filePartials []Partial
 		)
 
 		wg.Add(len(parsers))
@@ -88,13 +98,14 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, error) 
 		for _, p := range parsers {
 			go func(p parser) {
 				defer wg.Done()
-				res, err := p.Find(ctx, filepath.Join("/", header.Name), opener)
+				res, par, err := p.Find(ctx, filepath.Join("/", header.Name), opener)
 				lock.Lock()
 				defer lock.Unlock()
 				if err != nil {
 					errs = append(errs, err.Error())
 				}
 				fileFounds = append(fileFounds, res...)
+				filePartials = append(filePartials, par...)
 			}(p)
 		}
 
@@ -102,7 +113,7 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, error) 
 
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, nil, ctx.Err()
 		default:
 		}
 
@@ -114,12 +125,16 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, error) 
 			founds = append(founds, fileFounds...)
 		}
 
+		if len(filePartials) > 0 {
+			partials = append(partials, filePartials...)
+		}
+
 		if len(errs) > 0 {
-			return founds, fmt.Errorf("parser error finding certificates: %s", strings.Join(errs, "; "))
+			return founds, partials, fmt.Errorf("parser error finding certificates: %s", strings.Join(errs, "; "))
 		}
 	}
 
-	return founds, nil
+	return founds, partials, nil
 }
 
 // openerForFile returns an rseekerOpener and clean-up function for the given

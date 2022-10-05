@@ -49,7 +49,8 @@ paranoia validate alpine:latest --config some-config.yaml`,
 
 			imageName := args[0]
 
-			foundCerts, err := image.FindImageCertificates(context.TODO(), imageName)
+			// Validate operates only on full certificates, and ignores partials.
+			foundCerts, _, err := image.FindImageCertificates(context.TODO(), imageName)
 			if err != nil {
 				return err
 			}

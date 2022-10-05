@@ -13,12 +13,13 @@ import (
 
 func Test_x509pem(t *testing.T) {
 	tests := map[string]struct {
-		file       string
-		expReasons []string
+		file              string
+		expSubjects       []string
+		expPartialReasons []string
 	}{
 		"simple certificate list should parse": {
 			file: "testdata/test-1",
-			expReasons: []string{
+			expSubjects: []string{
 				"CN=GeoTrust Global CA,O=GeoTrust Inc.,C=US",
 				"CN=Google Internet Authority G2,O=Google Inc,C=US",
 				"CN=www.google.com,O=Google Inc,L=Mountain View,ST=California,C=US",
@@ -26,7 +27,7 @@ func Test_x509pem(t *testing.T) {
 		},
 		"certificate list if splattering of new lines should parse": {
 			file: "testdata/test-2",
-			expReasons: []string{
+			expSubjects: []string{
 				"CN=GeoTrust Global CA,O=GeoTrust Inc.,C=US",
 				"CN=Google Internet Authority G2,O=Google Inc,C=US",
 				"CN=www.google.com,O=Google Inc,L=Mountain View,ST=California,C=US",
@@ -34,20 +35,24 @@ func Test_x509pem(t *testing.T) {
 		},
 		"certificate starts, but doesn't end should be picked up": {
 			file: "testdata/test-3",
-			expReasons: []string{
+			expSubjects: []string{
 				"CN=GeoTrust Global CA,O=GeoTrust Inc.,C=US",
 				"CN=Google Internet Authority G2,O=Google Inc,C=US",
 				"CN=www.google.com,O=Google Inc,L=Mountain View,ST=California,C=US",
-				"a block of data looks like a PEM certificate, but cannot be decoded",
 				"CN=GeoTrust Global CA,O=GeoTrust Inc.,C=US",
+			},
+			expPartialReasons: []string{
+				"a block of data looks like a PEM certificate, but cannot be decoded",
 			},
 		},
 		"malformed certificates should still be reported": {
 			file: "testdata/test-4",
-			expReasons: []string{
+			expSubjects: []string{
 				"CN=GeoTrust Global CA,O=GeoTrust Inc.,C=US",
-				"failed to parse PEM certificate: x509: malformed certificate",
 				"CN=www.google.com,O=Google Inc,L=Mountain View,ST=California,C=US",
+			},
+			expPartialReasons: []string{
+				"failed to parse PEM certificate: x509: malformed certificate",
 			},
 		},
 	}
@@ -57,7 +62,7 @@ func Test_x509pem(t *testing.T) {
 			f, err := os.Open(test.file)
 			require.NoError(t, err)
 
-			resp, err := (pem{}).Find(context.TODO(), test.file, func() (io.ReadSeeker, error) {
+			resp, partials, err := (pem{}).Find(context.TODO(), test.file, func() (io.ReadSeeker, error) {
 				ff, err := io.ReadAll(f)
 				if err != nil {
 					return nil, err
@@ -67,13 +72,19 @@ func Test_x509pem(t *testing.T) {
 
 			assert.NoError(t, err)
 
-			var reasons []string
+			var subjects []string
 			for _, r := range resp {
 				assert.Equal(t, test.file, r.Location)
-				reasons = append(reasons, r.Reason)
+				subjects = append(subjects, r.Certificate.Subject.String())
 			}
+			assert.ElementsMatch(t, test.expSubjects, subjects)
 
-			assert.Equal(t, test.expReasons, reasons)
+			var partialsReasons []string
+			for _, r := range partials {
+				assert.Equal(t, test.file, r.Location)
+				partialsReasons = append(partialsReasons, r.Reason)
+			}
+			assert.ElementsMatch(t, test.expPartialReasons, partialsReasons)
 		})
 	}
 }
