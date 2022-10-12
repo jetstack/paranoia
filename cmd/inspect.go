@@ -16,6 +16,8 @@ import (
 )
 
 func newInspect(ctx context.Context) *cobra.Command {
+	var imgOpts *options.Image
+
 	cmd := &cobra.Command{
 		Use:   "inspect",
 		Short: "Inspect a container image for root certificates",
@@ -25,7 +27,12 @@ func newInspect(ctx context.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			imageName := args[0]
 
-			parsedCertificates, err := image.FindImageCertificates(ctx, imageName)
+			iOpts, err := imgOpts.Options()
+			if err != nil {
+				return errors.Wrap(err, "constructing image options")
+			}
+
+			parsedCertificates, err := image.FindImageCertificates(ctx, imageName, iOpts...)
 			if err != nil {
 				return err
 			}
@@ -77,5 +84,8 @@ func newInspect(ctx context.Context) *cobra.Command {
 			return nil
 		},
 	}
+
+	imgOpts = options.RegisterImage(cmd)
+
 	return cmd
 }

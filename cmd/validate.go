@@ -18,6 +18,7 @@ import (
 
 func newValidation(ctx context.Context) *cobra.Command {
 	var (
+		imgOpts *options.Image
 		outOpts *options.Output
 		valOpts *options.Validation
 	)
@@ -49,8 +50,13 @@ paranoia validate alpine:latest --config some-config.yaml`,
 
 			imageName := args[0]
 
+			iOpts, err := imgOpts.Options()
+			if err != nil {
+				return errors.Wrap(err, "constructing image options")
+			}
+
 			// Validate operates only on full certificates, and ignores partials.
-			parsedCertificates, err := image.FindImageCertificates(context.TODO(), imageName)
+			parsedCertificates, err := image.FindImageCertificates(context.TODO(), imageName, iOpts...)
 			if err != nil {
 				return err
 			}
@@ -110,6 +116,7 @@ paranoia validate alpine:latest --config some-config.yaml`,
 		},
 	}
 
+	imgOpts = options.RegisterImage(cmd)
 	outOpts = options.RegisterOutputs(cmd)
 	valOpts = options.RegisterValidation(cmd)
 
