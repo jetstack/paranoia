@@ -16,9 +16,9 @@ import (
 	"github.com/jetstack/paranoia/internal/certificate"
 )
 
-// FindImageCertificate will pull or load the image with the given name, scan
+// FindImageCertificates will pull or load the image with the given name, scan
 // for X.509 certificates, and return the result.
-func FindImageCertificates(ctx context.Context, name string) ([]certificate.Found, error) {
+func FindImageCertificates(ctx context.Context, name string) (*certificate.ParsedCertificates, error) {
 	name = strings.TrimSpace(name)
 
 	var (
@@ -65,7 +65,7 @@ func FindImageCertificates(ctx context.Context, name string) ([]certificate.Foun
 		close(exportDone)
 	}()
 
-	foundCerts, err := certificate.FindCertificates(context.TODO(), r)
+	parsedCertificates, err := certificate.FindCertificates(context.TODO(), r)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to search for certificates in container image")
 	}
@@ -75,5 +75,5 @@ func FindImageCertificates(ctx context.Context, name string) ([]certificate.Foun
 		return nil, errors.Wrap(err, "error when exporting image")
 	}
 
-	return foundCerts, nil
+	return parsedCertificates, nil
 }
