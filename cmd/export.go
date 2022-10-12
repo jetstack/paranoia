@@ -34,7 +34,7 @@ func newExport(ctx context.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			imageName := args[0]
 
-			foundCerts, partialCerts, err := image.FindImageCertificates(ctx, imageName)
+			parsedCertificates, err := image.FindImageCertificates(ctx, imageName)
 			if err != nil {
 				return err
 			}
@@ -46,7 +46,7 @@ func newExport(ctx context.Context) *cobra.Command {
 				tbl := table.New("File Location", "Parser", "Subject", "Not Before", "Not After", "SHA-256")
 				tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
-				for _, cert := range foundCerts {
+				for _, cert := range parsedCertificates.Found {
 					tbl.AddRow(cert.Location, cert.Parser, cert.Certificate.Subject,
 						cert.Certificate.NotBefore.Format(time.RFC3339),
 						cert.Certificate.NotAfter.Format(time.RFC3339),
@@ -54,27 +54,27 @@ func newExport(ctx context.Context) *cobra.Command {
 				}
 
 				tbl.Print()
-				fmt.Printf("Found %d certificates\n", len(foundCerts))
+				fmt.Printf("Found %d certificates\n", len(parsedCertificates.Found))
 
-				if len(partialCerts) > 0 {
+				if len(parsedCertificates.Partials) > 0 {
 					headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 					columnFmt := color.New(color.FgYellow).SprintfFunc()
 
 					tbl := table.New("File Location", "Parser", "Reason")
 					tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
-					for _, p := range partialCerts {
+					for _, p := range parsedCertificates.Partials {
 						tbl.AddRow(p.Location, p.Parser, p.Reason)
 					}
 
 					tbl.Print()
-					fmt.Printf("Found %d partial certificates\n", len(partialCerts))
+					fmt.Printf("Found %d partial certificates\n", len(parsedCertificates.Partials))
 				}
 
 			} else if outOpts.Mode == options.OutputModeJSON {
 				var out output.JSONOutput
 
-				for _, cert := range foundCerts {
+				for _, cert := range parsedCertificates.Found {
 					out.Certificates = append(out.Certificates, output.JSONCertificate{
 						FileLocation:      cert.Location,
 						Owner:             cert.Certificate.Subject.String(),
@@ -87,7 +87,7 @@ func newExport(ctx context.Context) *cobra.Command {
 					})
 				}
 
-				for _, p := range partialCerts {
+				for _, p := range parsedCertificates.Partials {
 					out.PartialCertificates = append(out.PartialCertificates, output.JSONPartialCertificate{
 						FileLocation: p.Location,
 						Parser:       p.Parser,

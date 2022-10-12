@@ -35,6 +35,9 @@ type Found struct {
 	FingerprintSha256 [32]byte
 }
 
+// Partial is a "partial" certificate. Usually the result of parsing something that looks like a certificate but isn't
+// valid, or some other anomaly. These are often worthy of further investigation, but aren't compatible with Paranoia's
+// various certificate operations.
 type Partial struct {
 	// Location is the filepath location where the certificate was found.
 	Location string
@@ -49,17 +52,29 @@ type Partial struct {
 
 type rseekerOpener func() (io.ReadSeeker, error)
 
+type ParsedCertificates struct {
+	// Found is a slice of full, valid certificates we've found in the given container image.
+	Found []Found
+	// Partials is a slice of any partial certificates we've found. This might be fragments of certificates in memory
+	// or other anomalies.
+	Partials []Partial
+}
+
+func (p *ParsedCertificates) appendParsed(q *ParsedCertificates) {
+	p.Found = append(p.Found, q.Found...)
+	p.Partials = append(p.Partials, q.Partials...)
+}
+
 // parser is the interface implemented by X.509 certificate parsers.
 type parser interface {
-	Find(context.Context, string, rseekerOpener) ([]Found, []Partial, error)
+	Find(context.Context, string, rseekerOpener) (*ParsedCertificates, error)
 }
 
 // FindCertificates will scan a container image, given as a file handler to a TAR file, for certificates and return them.
-func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, []Partial, error) {
+func FindCertificates(ctx context.Context, imageTar io.Reader) (*ParsedCertificates, error) {
 	var (
-		parsers  = []parser{pem{}}
-		founds   []Found
-		partials []Partial
+		parsers = []parser{pem{}}
+		parsed  = &ParsedCertificates{}
 	)
 
 	tz := tar.NewReader(imageTar)
@@ -71,7 +86,7 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, []Parti
 		}
 
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// If file is not a regular file, ignore.
@@ -81,15 +96,13 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, []Parti
 
 		opener, oCleanup, err := openerForFile(ctx, header, tz)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		var (
-			wg           sync.WaitGroup
-			lock         sync.Mutex
-			errs         []string
-			fileFounds   []Found
-			filePartials []Partial
+			wg   sync.WaitGroup
+			lock sync.Mutex
+			errs []string
 		)
 
 		wg.Add(len(parsers))
@@ -98,14 +111,13 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, []Parti
 		for _, p := range parsers {
 			go func(p parser) {
 				defer wg.Done()
-				res, par, err := p.Find(ctx, filepath.Join("/", header.Name), opener)
+				parserParsed, err := p.Find(ctx, filepath.Join("/", header.Name), opener)
 				lock.Lock()
 				defer lock.Unlock()
 				if err != nil {
 					errs = append(errs, err.Error())
 				}
-				fileFounds = append(fileFounds, res...)
-				filePartials = append(filePartials, par...)
+				parsed.appendParsed(parserParsed)
 			}(p)
 		}
 
@@ -113,7 +125,7 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, []Parti
 
 		select {
 		case <-ctx.Done():
-			return nil, nil, ctx.Err()
+			return nil, ctx.Err()
 		default:
 		}
 
@@ -121,20 +133,12 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, []Parti
 			errs = append(errs, err.Error())
 		}
 
-		if len(fileFounds) > 0 {
-			founds = append(founds, fileFounds...)
-		}
-
-		if len(filePartials) > 0 {
-			partials = append(partials, filePartials...)
-		}
-
 		if len(errs) > 0 {
-			return founds, partials, fmt.Errorf("parser error finding certificates: %s", strings.Join(errs, "; "))
+			return parsed, fmt.Errorf("parser error finding certificates: %s", strings.Join(errs, "; "))
 		}
 	}
 
-	return founds, partials, nil
+	return parsed, nil
 }
 
 // openerForFile returns an rseekerOpener and clean-up function for the given

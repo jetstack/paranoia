@@ -50,20 +50,20 @@ paranoia validate alpine:latest --config some-config.yaml`,
 			imageName := args[0]
 
 			// Validate operates only on full certificates, and ignores partials.
-			foundCerts, _, err := image.FindImageCertificates(context.TODO(), imageName)
+			parsedCertificates, err := image.FindImageCertificates(context.TODO(), imageName)
 			if err != nil {
 				return err
 			}
 
-			validateRes, err := validator.Validate(foundCerts)
+			validateRes, err := validator.Validate(parsedCertificates.Found)
 			if err != nil {
 				return err
 			}
 
 			if validateRes.IsPass() {
-				fmt.Printf("Scanned %d certificates in image %s, no issues found.\n", len(foundCerts), imageName)
+				fmt.Printf("Scanned %d certificates in image %s, no issues found.\n", len(parsedCertificates.Found), imageName)
 			} else {
-				fmt.Printf("Scanned %d certificates in image %s, found issues.\n", len(foundCerts), imageName)
+				fmt.Printf("Scanned %d certificates in image %s, found issues.\n", len(parsedCertificates.Found), imageName)
 				for _, na := range validateRes.NotAllowedCertificates {
 					fmt.Printf("Certificate with SHA256 fingerprint %X in location %s was not allowed\n", na.FingerprintSha256, na.Location)
 				}

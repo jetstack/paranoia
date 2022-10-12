@@ -21,14 +21,14 @@ type pem struct{}
 // header. Once found, it attempts to find the end footer. Even if the end
 // footer is not found, a Certificate is still recorded, but marked as not
 // correctly decoded.
-func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Found, []Partial, error) {
+func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) (*ParsedCertificates, error) {
 	ignored := []byte{'\n', '\t', '\r', ' ', '\f', '\v', '\b', '\x00', '"', '\''}
 	pemStart := []byte("-----BEGIN CERTIFICATE-----")
 	pemEnd := []byte("-----END CERTIFICATE-----")
 
 	file, err := rs()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	var (
@@ -53,13 +53,13 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 
 		// Exit if we encounter an error reading from file.
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// If  context has been cancelled, exit scanning.
 		select {
 		case <-ctx.Done():
-			return nil, nil, ctx.Err()
+			return nil, ctx.Err()
 		default:
 		}
 
@@ -96,13 +96,13 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 					break
 				}
 				if err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 
 				// Again, check context.
 				select {
 				case <-ctx.Done():
-					return nil, nil, ctx.Err()
+					return nil, ctx.Err()
 				default:
 				}
 
@@ -172,7 +172,7 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 				// appropriate reason, and reset the file so we can re-scan.
 				reason = "found start of PEM encoded certificate, but could not find end"
 				if _, err := file.Seek(-int64(len(current)-len(pemStart)+1), io.SeekCurrent); err != nil {
-					return nil, nil, fmt.Errorf("failed to seek: %w", err)
+					return nil, fmt.Errorf("failed to seek: %w", err)
 				}
 			}
 
@@ -196,5 +196,8 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 		}
 	}
 
-	return results, partials, nil
+	return &ParsedCertificates{
+		Found:    results,
+		Partials: partials,
+	}, nil
 }

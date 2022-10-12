@@ -62,7 +62,7 @@ func Test_x509pem(t *testing.T) {
 			f, err := os.Open(test.file)
 			require.NoError(t, err)
 
-			resp, partials, err := (pem{}).Find(context.TODO(), test.file, func() (io.ReadSeeker, error) {
+			parsedCerts, err := (pem{}).Find(context.TODO(), test.file, func() (io.ReadSeeker, error) {
 				ff, err := io.ReadAll(f)
 				if err != nil {
 					return nil, err
@@ -73,14 +73,14 @@ func Test_x509pem(t *testing.T) {
 			assert.NoError(t, err)
 
 			var subjects []string
-			for _, r := range resp {
+			for _, r := range parsedCerts.Found {
 				assert.Equal(t, test.file, r.Location)
 				subjects = append(subjects, r.Certificate.Subject.String())
 			}
 			assert.ElementsMatch(t, test.expSubjects, subjects)
 
 			var partialsReasons []string
-			for _, r := range partials {
+			for _, r := range parsedCerts.Partials {
 				assert.Equal(t, test.file, r.Location)
 				partialsReasons = append(partialsReasons, r.Reason)
 			}
