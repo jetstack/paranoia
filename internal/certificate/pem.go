@@ -143,7 +143,7 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 			// to the end of the file, or we matched on the footer.
 
 			var (
-				valid    bool
+				valid    = false
 				reason   string
 				cert     *x509.Certificate
 				fpsha1   [20]byte
@@ -157,12 +157,10 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 
 				if block == nil {
 					reason = fmt.Sprintf("a block of data looks like a PEM certificate, but cannot be decoded")
-					valid = false
 				} else {
 					cert, err = x509.ParseCertificate(block.Bytes)
 					if err != nil {
 						reason = fmt.Sprintf("failed to parse PEM certificate: %s", err)
-						valid = false
 					} else {
 						fpsha1 = sha1.Sum(block.Bytes)
 						fpsha256 = sha256.Sum256(block.Bytes)
@@ -173,7 +171,6 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 				// If we didn't actually decode an entire certificate, then set an
 				// appropriate reason, and reset the file so we can re-scan.
 				reason = "found start of PEM encoded certificate, but could not find end"
-				valid = false
 				if _, err := file.Seek(-int64(len(current)-len(pemStart)+1), io.SeekCurrent); err != nil {
 					return nil, nil, fmt.Errorf("failed to seek: %w", err)
 				}
