@@ -12,9 +12,10 @@ import (
 const (
 	OutputModePretty = "pretty"
 	OutputModeJSON   = "json"
+	OutputModeWide   = "wide"
 )
 
-var outputModes = []string{OutputModePretty, OutputModeJSON}
+var outputModes = []string{OutputModePretty, OutputModeJSON, OutputModeWide}
 
 // Output are options for configuring command outputs.
 type Output struct {
