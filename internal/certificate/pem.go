@@ -21,7 +21,7 @@ type pem struct{}
 // header. Once found, it attempts to find the end footer. Even if the end
 // footer is not found, a Certificate is still recorded, but marked as not
 // correctly decoded.
-func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Found, error) {
+func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) (*ParsedCertificates, error) {
 	ignored := []byte{'\n', '\t', '\r', ' ', '\f', '\v', '\b', '\x00', '"', '\''}
 	pemStart := []byte("-----BEGIN CERTIFICATE-----")
 	pemEnd := []byte("-----END CERTIFICATE-----")
@@ -37,6 +37,8 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 		// results is the end result of the found certificates for this file
 		// location.
 		results []Found
+		// partials is the list of partial certificates found
+		partials []Partial
 		// Current is the current successfully decoded certificate buffer. Starts
 		// empty until we start to scan with a successful header.
 		current []byte
@@ -141,6 +143,7 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 			// to the end of the file, or we matched on the footer.
 
 			var (
+				valid    = false
 				reason   string
 				cert     *x509.Certificate
 				fpsha1   [20]byte
@@ -159,9 +162,9 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 					if err != nil {
 						reason = fmt.Sprintf("failed to parse PEM certificate: %s", err)
 					} else {
-						reason = cert.Subject.String()
 						fpsha1 = sha1.Sum(block.Bytes)
 						fpsha256 = sha256.Sum256(block.Bytes)
+						valid = true
 					}
 				}
 			} else {
@@ -174,15 +177,27 @@ func (_ pem) Find(ctx context.Context, location string, rs rseekerOpener) ([]Fou
 			}
 
 			// Capture result.
-			results = append(results, Found{
-				Location: location,
-				Parser:   "pem",
-				Reason:   reason, Certificate: cert,
-				FingerprintSha1: fpsha1, FingerprintSha256: fpsha256,
-			})
+			if valid {
+				results = append(results, Found{
+					Location:          location,
+					Parser:            "pem",
+					Certificate:       cert,
+					FingerprintSha1:   fpsha1,
+					FingerprintSha256: fpsha256,
+				})
+			} else {
+				partials = append(partials, Partial{
+					Location: location,
+					Parser:   "pem",
+					Reason:   reason,
+				})
+			}
 			current = current[:0]
 		}
 	}
 
-	return results, nil
+	return &ParsedCertificates{
+		Found:    results,
+		Partials: partials,
+	}, nil
 }

@@ -24,10 +24,6 @@ type Found struct {
 	// Parser is the name of the parser which discovered the certificate.
 	Parser string
 
-	// Reason is a human-readable explanation of the certificate, either describe
-	// why it couldn't be parsed or a summary of the parsed certificate.
-	Reason string
-
 	// Certificate is the parsed certificate. May be nil if the parser failed to
 	// decode a found certificate.
 	Certificate *x509.Certificate
@@ -39,18 +35,46 @@ type Found struct {
 	FingerprintSha256 [32]byte
 }
 
+// Partial is a "partial" certificate. Usually the result of parsing something that looks like a certificate but isn't
+// valid, or some other anomaly. These are often worthy of further investigation, but aren't compatible with Paranoia's
+// various certificate operations.
+type Partial struct {
+	// Location is the filepath location where the certificate was found.
+	Location string
+
+	// Parser is the name of the parser which discovered the certificate.
+	Parser string
+
+	// Reason is a human-readable explanation of the certificate, either describe
+	// why it couldn't be parsed or a summary of the parsed certificate.
+	Reason string
+}
+
 type rseekerOpener func() (io.ReadSeeker, error)
+
+type ParsedCertificates struct {
+	// Found is a slice of full, valid certificates we've found in the given container image.
+	Found []Found
+	// Partials is a slice of any partial certificates we've found. This might be fragments of certificates in memory
+	// or other anomalies.
+	Partials []Partial
+}
+
+func (p *ParsedCertificates) appendParsed(q *ParsedCertificates) {
+	p.Found = append(p.Found, q.Found...)
+	p.Partials = append(p.Partials, q.Partials...)
+}
 
 // parser is the interface implemented by X.509 certificate parsers.
 type parser interface {
-	Find(context.Context, string, rseekerOpener) ([]Found, error)
+	Find(context.Context, string, rseekerOpener) (*ParsedCertificates, error)
 }
 
 // FindCertificates will scan a container image, given as a file handler to a TAR file, for certificates and return them.
-func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, error) {
+func FindCertificates(ctx context.Context, imageTar io.Reader) (*ParsedCertificates, error) {
 	var (
 		parsers = []parser{pem{}}
-		founds  []Found
+		parsed  = &ParsedCertificates{}
 	)
 
 	tz := tar.NewReader(imageTar)
@@ -76,10 +100,9 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, error) 
 		}
 
 		var (
-			wg         sync.WaitGroup
-			lock       sync.Mutex
-			errs       []string
-			fileFounds []Found
+			wg   sync.WaitGroup
+			lock sync.Mutex
+			errs []string
 		)
 
 		wg.Add(len(parsers))
@@ -88,13 +111,13 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, error) 
 		for _, p := range parsers {
 			go func(p parser) {
 				defer wg.Done()
-				res, err := p.Find(ctx, filepath.Join("/", header.Name), opener)
+				parserParsed, err := p.Find(ctx, filepath.Join("/", header.Name), opener)
 				lock.Lock()
 				defer lock.Unlock()
 				if err != nil {
 					errs = append(errs, err.Error())
 				}
-				fileFounds = append(fileFounds, res...)
+				parsed.appendParsed(parserParsed)
 			}(p)
 		}
 
@@ -110,16 +133,12 @@ func FindCertificates(ctx context.Context, imageTar io.Reader) ([]Found, error) 
 			errs = append(errs, err.Error())
 		}
 
-		if len(fileFounds) > 0 {
-			founds = append(founds, fileFounds...)
-		}
-
 		if len(errs) > 0 {
-			return founds, fmt.Errorf("parser error finding certificates: %s", strings.Join(errs, "; "))
+			return parsed, fmt.Errorf("parser error finding certificates: %s", strings.Join(errs, "; "))
 		}
 	}
 
-	return founds, nil
+	return parsed, nil
 }
 
 // openerForFile returns an rseekerOpener and clean-up function for the given

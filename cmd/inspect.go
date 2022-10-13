@@ -16,6 +16,8 @@ import (
 )
 
 func newInspect(ctx context.Context) *cobra.Command {
+	var imgOpts *options.Image
+
 	cmd := &cobra.Command{
 		Use:   "inspect",
 		Short: "Inspect a container image for root certificates",
@@ -25,7 +27,12 @@ func newInspect(ctx context.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			imageName := args[0]
 
-			foundCerts, err := image.FindImageCertificates(ctx, imageName)
+			iOpts, err := imgOpts.Options()
+			if err != nil {
+				return errors.Wrap(err, "constructing image options")
+			}
+
+			parsedCertificates, err := image.FindImageCertificates(ctx, imageName, iOpts...)
 			if err != nil {
 				return err
 			}
@@ -36,7 +43,7 @@ func newInspect(ctx context.Context) *cobra.Command {
 			}
 
 			numIssues := 0
-			for _, cert := range foundCerts {
+			for _, cert := range parsedCertificates.Found {
 				if cert.Certificate == nil {
 					numIssues++
 					continue
@@ -65,10 +72,20 @@ func newInspect(ctx context.Context) *cobra.Command {
 					}
 				}
 			}
-			fmt.Printf("Found %d certificates total, of which %d had issues\n", len(foundCerts), numIssues)
+			fmt.Printf("Found %d certificates total, of which %d had issues\n", len(parsedCertificates.Found), numIssues)
+			if len(parsedCertificates.Partials) > 0 {
+				for _, p := range parsedCertificates.Partials {
+					fmtFn := color.New(color.FgYellow).SprintfFunc()
+					fmt.Printf(fmtFn("⚠️ Partial certificate found in file %s: %s\n", p.Location, p.Reason))
+				}
+				fmt.Printf("Found %d partial certificates\n", len(parsedCertificates.Partials))
+			}
 
 			return nil
 		},
 	}
+
+	imgOpts = options.RegisterImage(cmd)
+
 	return cmd
 }

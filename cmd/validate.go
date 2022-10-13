@@ -18,6 +18,7 @@ import (
 
 func newValidation(ctx context.Context) *cobra.Command {
 	var (
+		imgOpts *options.Image
 		outOpts *options.Output
 		valOpts *options.Validation
 	)
@@ -49,20 +50,26 @@ paranoia validate alpine:latest --config some-config.yaml`,
 
 			imageName := args[0]
 
-			foundCerts, err := image.FindImageCertificates(context.TODO(), imageName)
+			iOpts, err := imgOpts.Options()
+			if err != nil {
+				return errors.Wrap(err, "constructing image options")
+			}
+
+			// Validate operates only on full certificates, and ignores partials.
+			parsedCertificates, err := image.FindImageCertificates(context.TODO(), imageName, iOpts...)
 			if err != nil {
 				return err
 			}
 
-			validateRes, err := validator.Validate(foundCerts)
+			validateRes, err := validator.Validate(parsedCertificates.Found)
 			if err != nil {
 				return err
 			}
 
 			if validateRes.IsPass() {
-				fmt.Printf("Scanned %d certificates in image %s, no issues found.\n", len(foundCerts), imageName)
+				fmt.Printf("Scanned %d certificates in image %s, no issues found.\n", len(parsedCertificates.Found), imageName)
 			} else {
-				fmt.Printf("Scanned %d certificates in image %s, found issues.\n", len(foundCerts), imageName)
+				fmt.Printf("Scanned %d certificates in image %s, found issues.\n", len(parsedCertificates.Found), imageName)
 				for _, na := range validateRes.NotAllowedCertificates {
 					fmt.Printf("Certificate with SHA256 fingerprint %X in location %s was not allowed\n", na.FingerprintSha256, na.Location)
 				}
@@ -109,6 +116,7 @@ paranoia validate alpine:latest --config some-config.yaml`,
 		},
 	}
 
+	imgOpts = options.RegisterImage(cmd)
 	outOpts = options.RegisterOutputs(cmd)
 	valOpts = options.RegisterValidation(cmd)
 
