@@ -20,7 +20,10 @@ import (
 )
 
 func newExport(ctx context.Context) *cobra.Command {
-	var outOpts *options.Output
+	var (
+		imgOpts *options.Image
+		outOpts *options.Output
+	)
 
 	cmd := &cobra.Command{
 		Use:   "export",
@@ -34,7 +37,12 @@ func newExport(ctx context.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			imageName := args[0]
 
-			parsedCertificates, err := image.FindImageCertificates(ctx, imageName)
+			iOpts, err := imgOpts.Options()
+			if err != nil {
+				return errors.Wrap(err, "constructing image options")
+			}
+
+			parsedCertificates, err := image.FindImageCertificates(ctx, imageName, iOpts...)
 			if err != nil {
 				return err
 			}
@@ -107,6 +115,7 @@ func newExport(ctx context.Context) *cobra.Command {
 		},
 	}
 
+	imgOpts = options.RegisterImage(cmd)
 	outOpts = options.RegisterOutputs(cmd)
 
 	return cmd
