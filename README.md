@@ -35,7 +35,7 @@ conflicts.
 `--permissive`: Enables permissive mode, allowing all certificates unless explicitly forbidden. When not
 enabled `validate` defaults to `strict` mode where all certificates are forbidden unless explicitly allowed.
 
-`--warn`: Forces the process to end with exit code 0 regardless of whether conflicts are found. Output remains the same.
+`--quiet`: Forces the process to end with exit code 0 regardless of whether conflicts are found. Output remains the same.
 
 `-c --config`: Takes a file path and allows the use of a specified config file rather than the default, `.paranoia.yaml`.
 
@@ -68,26 +68,32 @@ exit status 1
 **Note:** Comments on allowed certificate fingerprints will never be displayed in the output as we don't report on
 allowances. However, they can be very helpful for anyone who needs to maintain the file.
 
-
 ### Export
 
 Outputs data on all found certificates, including the file location, owner, valid from and valid to dates and the SHA256
 fingerprint (useful for populating a config file for use with the `validate` command).
 
 ```shell
-$ paranoid export alpine:latest
-File Location                      Owner                                                        Not Before            Not After             SHA-256                                                           
-etc/ssl/certs/ca-certificates.crt  ACCVRAIZ1                                                    2011-05-05T09:37:37Z  2030-12-31T09:37:37Z  9a6ec012e1a7da9dbe34194d478ad7c0db1822fb071df12981496ed104384113  
-etc/ssl/certs/ca-certificates.crt  AC RAIZ FNMT-RCM SERVIDORES SEGUROS                          2018-12-20T09:37:33Z  2043-12-20T09:37:33Z  554153b13d2cf9ddb753bfbe1a4e0ae08d0aa4187058fe60a2b862b2e4b87bcb  
-...
-etc/ssl/certs/ca-certificates.crt  vTrus ECC Root CA                                            2018-07-31T07:26:44Z  2043-07-31T07:26:44Z  30fbba2c32238e2a98547af97931e550428b9b3f1c8eeb6633dcfa86c5b27dd3  
-etc/ssl/certs/ca-certificates.crt  vTrus Root CA                                                2018-07-31T07:24:05Z  2043-07-31T07:24:05Z  8a71de6559336f426c26e53880d00d88a18da4c6a91f0dcb6194e206c5c96387  
-Found 132 certificates
+$ paranoia export alpine:latest
+File Location                       Subject                                                                                                                                                                        
+/etc/ssl/certs/ca-certificates.crt  CN=ACCVRAIZ1,OU=PKIACCV,O=ACCV,C=ES                                                                                                                                            
+/etc/ssl/certs/ca-certificates.crt  OU=AC RAIZ FNMT-RCM,O=FNMT-RCM,C=ES                                                                                                                                            
+/etc/ssl/certs/ca-certificates.crt  CN=AC RAIZ FNMT-RCM SERVIDORES SEGUROS,OU=Ceres,O=FNMT-RCM,C=ES,2.5.4.97=#130f56415445532d51323832363030344a                                                                   
+/etc/ssl/certs/ca-certificates.crt  SERIALNUMBER=G63287510,CN=ANF Secure Server Root CA,OU=ANF CA Raiz,O=ANF Autoridad de Certificacion,C=ES                                                                       
+/etc/ssl/certs/ca-certificates.crt  CN=Actalis Authentication Root CA,O=Actalis S.p.A./03358520967,L=Milan,C=IT                                                                                                    
+/etc/ssl/certs/ca-certificates.crt  CN=AffirmTrust Commercial,O=AffirmTrust,C=US                                                                                                                                   
+/etc/ssl/certs/ca-certificates.crt  CN=AffirmTrust Networking,O=AffirmTrust,C=US                                                                                                                                   
+/etc/ssl/certs/ca-certificates.crt  CN=AffirmTrust Premium,O=AffirmTrust,C=US                                                                                                                                      
+/etc/ssl/certs/ca-certificates.crt  CN=AffirmTrust Premium ECC,O=AffirmTrust,C=US
+…
+/etc/ssl/certs/ca-certificates.crt  CN=vTrus ECC Root CA,O=iTrusChina Co.\,Ltd.,C=CN                                                                                                                               
+/etc/ssl/certs/ca-certificates.crt  CN=vTrus Root CA,O=iTrusChina Co.\,Ltd.,C=CN                                                                                                                                   
+Found 140 certificates
 ```
 
 ### Global flags
 
-`-o --output`: Allows specification of the output mode. Supports `pretty` and `json`. Defaults to `pretty`.
+`-o --output`: Allows specification of the output mode. Supports `pretty`, `wide`, and `json`. Defaults to `pretty`.
 
 `--platform`: Specifies the platform in the form `os/arch[/variant][:osversion]` (e.g. `linux/amd64`)
 
