@@ -20,7 +20,10 @@ import (
 )
 
 func newExport(ctx context.Context) *cobra.Command {
-	var outOpts *options.Output
+	var (
+		imgOpts *options.Image
+		outOpts *options.Output
+	)
 
 	cmd := &cobra.Command{
 		Use:   "export",
@@ -34,7 +37,12 @@ func newExport(ctx context.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			imageName := args[0]
 
-			foundCerts, err := image.FindImageCertificates(ctx, imageName)
+			iOpts, err := imgOpts.Options()
+			if err != nil {
+				return errors.Wrap(err, "constructing image options")
+			}
+
+			parsedCertificates, err := image.FindImageCertificates(ctx, imageName, iOpts...)
 			if err != nil {
 				return err
 			}
@@ -43,43 +51,56 @@ func newExport(ctx context.Context) *cobra.Command {
 				headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 				columnFmt := color.New(color.FgYellow).SprintfFunc()
 
-				tbl := table.New("File Location", "Parser", "Reason", "Not Before", "Not After", "SHA-256")
+				tbl := table.New("File Location", "Parser", "Subject", "Not Before", "Not After", "SHA-256")
 				tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
-				for _, cert := range foundCerts {
-					if cert.Certificate == nil {
-						tbl.AddRow(cert.Location, cert.Parser, cert.Reason, "-", "-", "-")
-					} else {
-						tbl.AddRow(cert.Location, cert.Parser, cert.Reason,
-							cert.Certificate.NotBefore.Format(time.RFC3339),
-							cert.Certificate.NotAfter.Format(time.RFC3339),
-							hex.EncodeToString(cert.FingerprintSha256[:]))
-					}
+				for _, cert := range parsedCertificates.Found {
+					tbl.AddRow(cert.Location, cert.Parser, cert.Certificate.Subject,
+						cert.Certificate.NotBefore.Format(time.RFC3339),
+						cert.Certificate.NotAfter.Format(time.RFC3339),
+						hex.EncodeToString(cert.FingerprintSha256[:]))
 				}
 
 				tbl.Print()
-				fmt.Printf("Found %d certificates\n", len(foundCerts))
+				fmt.Printf("Found %d certificates\n", len(parsedCertificates.Found))
+
+				if len(parsedCertificates.Partials) > 0 {
+					headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+					columnFmt := color.New(color.FgYellow).SprintfFunc()
+
+					tbl := table.New("File Location", "Parser", "Reason")
+					tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+
+					for _, p := range parsedCertificates.Partials {
+						tbl.AddRow(p.Location, p.Parser, p.Reason)
+					}
+
+					tbl.Print()
+					fmt.Printf("Found %d partial certificates\n", len(parsedCertificates.Partials))
+				}
 
 			} else if outOpts.Mode == options.OutputModeJSON {
 				var out output.JSONOutput
 
-				for _, cert := range foundCerts {
-					if cert.Certificate == nil {
-						out.Certificates = append(out.Certificates, output.JSONCertificate{
-							FileLocation: cert.Location,
-							Owner:        cert.Reason,
-						})
-					} else {
-						out.Certificates = append(out.Certificates, output.JSONCertificate{
-							FileLocation:      cert.Location,
-							Owner:             cert.Reason,
-							Signature:         fmt.Sprintf("%X", cert.Certificate.Signature),
-							NotBefore:         cert.Certificate.NotBefore.Format(time.RFC3339),
-							NotAfter:          cert.Certificate.NotAfter.Format(time.RFC3339),
-							FingerprintSHA1:   hex.EncodeToString(cert.FingerprintSha1[:]),
-							FingerprintSHA256: hex.EncodeToString(cert.FingerprintSha256[:]),
-						})
-					}
+				for _, cert := range parsedCertificates.Found {
+					out.Certificates = append(out.Certificates, output.JSONCertificate{
+						FileLocation:      cert.Location,
+						Owner:             cert.Certificate.Subject.String(),
+						Parser:            cert.Parser,
+						Signature:         fmt.Sprintf("%X", cert.Certificate.Signature),
+						NotBefore:         cert.Certificate.NotBefore.Format(time.RFC3339),
+						NotAfter:          cert.Certificate.NotAfter.Format(time.RFC3339),
+						FingerprintSHA1:   hex.EncodeToString(cert.FingerprintSha1[:]),
+						FingerprintSHA256: hex.EncodeToString(cert.FingerprintSha256[:]),
+					})
+				}
+
+				for _, p := range parsedCertificates.Partials {
+					out.PartialCertificates = append(out.PartialCertificates, output.JSONPartialCertificate{
+						FileLocation: p.Location,
+						Parser:       p.Parser,
+						Reason:       p.Reason,
+					})
 				}
 
 				m, err := json.Marshal(out)
@@ -94,6 +115,7 @@ func newExport(ctx context.Context) *cobra.Command {
 		},
 	}
 
+	imgOpts = options.RegisterImage(cmd)
 	outOpts = options.RegisterOutputs(cmd)
 
 	return cmd

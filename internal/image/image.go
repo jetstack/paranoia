@@ -16,9 +16,11 @@ import (
 	"github.com/jetstack/paranoia/internal/certificate"
 )
 
-// FindImageCertificate will pull or load the image with the given name, scan
+// FindImageCertificates will pull or load the image with the given name, scan
 // for X.509 certificates, and return the result.
-func FindImageCertificates(ctx context.Context, name string) ([]certificate.Found, error) {
+func FindImageCertificates(ctx context.Context, name string, opts ...Option) (*certificate.ParsedCertificates, error) {
+	o := makeOptions(opts...)
+
 	name = strings.TrimSpace(name)
 
 	var (
@@ -42,11 +44,11 @@ func FindImageCertificates(ctx context.Context, name string) ([]certificate.Foun
 			return nil, fmt.Errorf("failed to close temporary file: %w", err)
 		}
 
-		img, err = crane.Load(f.Name())
+		img, err = crane.Load(f.Name(), o.craneOpts...)
 	case strings.HasPrefix(name, "file://"):
-		img, err = crane.Load(strings.TrimPrefix(name, "file://"))
+		img, err = crane.Load(strings.TrimPrefix(name, "file://"), o.craneOpts...)
 	default:
-		img, err = crane.Pull(name)
+		img, err = crane.Pull(name, o.craneOpts...)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to load image: %w", err)
@@ -65,7 +67,7 @@ func FindImageCertificates(ctx context.Context, name string) ([]certificate.Foun
 		close(exportDone)
 	}()
 
-	foundCerts, err := certificate.FindCertificates(context.TODO(), r)
+	parsedCertificates, err := certificate.FindCertificates(context.TODO(), r)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to search for certificates in container image")
 	}
@@ -75,5 +77,5 @@ func FindImageCertificates(ctx context.Context, name string) ([]certificate.Foun
 		return nil, errors.Wrap(err, "error when exporting image")
 	}
 
-	return foundCerts, nil
+	return parsedCertificates, nil
 }
