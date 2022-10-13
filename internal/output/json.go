@@ -14,8 +14,8 @@ type JSONCertificate struct {
 	Signature         string `json:"signature"`
 	NotBefore         string `json:"notBefore"`
 	NotAfter          string `json:"notAfter"`
-	FingerprintSHA1   string `json:"FingerprintSHA1"`
-	FingerprintSHA256 string `json:"FingerprintSHA256"`
+	FingerprintSHA1   string `json:"fingerprintSHA1"`
+	FingerprintSHA256 string `json:"fingerprintSHA256"`
 }
 
 type JSONPartialCertificate struct {
