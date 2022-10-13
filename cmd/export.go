@@ -47,18 +47,28 @@ func newExport(ctx context.Context) *cobra.Command {
 				return err
 			}
 
-			if outOpts.Mode == options.OutputModePretty {
+			if outOpts.Mode == options.OutputModePretty || outOpts.Mode == options.OutputModeWide {
+				wide := outOpts.Mode == options.OutputModeWide
 				headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 				columnFmt := color.New(color.FgYellow).SprintfFunc()
 
-				tbl := table.New("File Location", "Parser", "Subject", "Not Before", "Not After", "SHA-256")
+				var tbl table.Table
+				if wide {
+					tbl = table.New("File Location", "Parser", "Subject", "Not Before", "Not After", "SHA-256")
+				} else {
+					tbl = table.New("File Location", "Subject")
+				}
 				tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
 				for _, cert := range parsedCertificates.Found {
-					tbl.AddRow(cert.Location, cert.Parser, cert.Certificate.Subject,
-						cert.Certificate.NotBefore.Format(time.RFC3339),
-						cert.Certificate.NotAfter.Format(time.RFC3339),
-						hex.EncodeToString(cert.FingerprintSha256[:]))
+					if wide {
+						tbl.AddRow(cert.Location, cert.Parser, cert.Certificate.Subject,
+							cert.Certificate.NotBefore.Format(time.RFC3339),
+							cert.Certificate.NotAfter.Format(time.RFC3339),
+							hex.EncodeToString(cert.FingerprintSha256[:]))
+					} else {
+						tbl.AddRow(cert.Location, cert.Certificate.Subject)
+					}
 				}
 
 				tbl.Print()

@@ -19,7 +19,6 @@ import (
 func newValidation(ctx context.Context) *cobra.Command {
 	var (
 		imgOpts *options.Image
-		outOpts *options.Output
 		valOpts *options.Validation
 	)
 
@@ -34,7 +33,7 @@ paranoia validate alpine:latest --config some-config.yaml`,
 			if err := options.MustSingleImageArgs(args); err != nil {
 				return err
 			}
-			return outOpts.Validate()
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			validateConfig, err := validate.LoadConfig(valOpts.Config)
@@ -117,7 +116,6 @@ paranoia validate alpine:latest --config some-config.yaml`,
 	}
 
 	imgOpts = options.RegisterImage(cmd)
-	outOpts = options.RegisterOutputs(cmd)
 	valOpts = options.RegisterValidation(cmd)
 
 	return cmd
