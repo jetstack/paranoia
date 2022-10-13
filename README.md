@@ -89,6 +89,8 @@ Found 132 certificates
 
 `-o --output`: Allows specification of the output mode. Supports `pretty` and `json`. Defaults to `pretty`.
 
+`--platform`: Specifies the platform in the form `os/arch[/variant][:osversion]` (e.g. `linux/amd64`)
+
 ## CI Usage
 
 The functionality of Paranoia is well suited to running in CI pipelines, either producing reports on a schedule or
