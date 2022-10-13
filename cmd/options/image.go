@@ -4,9 +4,10 @@ package options
 
 import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
-	"github.com/jetstack/paranoia/internal/image"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+
+	"github.com/jetstack/paranoia/internal/image"
 )
 
 // Image contains options for interacting with images
