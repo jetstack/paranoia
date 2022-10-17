@@ -1,13 +1,19 @@
 # Paranoia
 
-Who do you trust?
+_Who do you trust?_
 
-Paranoia is a tool to analyse and export trust bundles (like "ca certificates") from container images.
+Paranoia is a tool to analyse and export trust bundles (e.g., "ca-certificates") from container images. These certificates identify the certificate authorites that your container trusts when establishing TLS connections. The design of TLS is that any certificate authority that your container trusts can issue a certificate for any domain. This means that a malicious or compromised certificate authority could issue a certificate to impersonate any other service, including your internal infrastructure.
 
-It can be used to inspect and validate the certificates within your container images, as can be seen in our
-GitHub action [here](action.yml).
+Paranoia can be used to inspect and validate the certificates within your container images. This gives you visibility into which certificate authorities your container images are trusting; allows you to forbid or require certificates at build-time in CI; and help you decide _who to trust_ in your container images.
 
 Paranoia is built by [Jetstack](https://jetstack.io) and made available under the Apache 2.0 license, see [LICENSE.txt](LICENSE.txt).
+
+## Limitations
+
+Paranoia will detect certificate authorities in most cases, and is especially useful at finding accidental inclusion or for conducting a certificate authority inventory. However there are some limitations to bear in mind while using Paranoia:
+- Paranoia only functions on container images, not running containers. Anything added into the container at runtime is not seen.
+- If a certificate is found, that doesn’t guarantee that the container will trust it as a certificate authority. It could, for example, be an unused leftover file.
+- It’s possible for an attacker to ‘hide’ a certificate authority from Paranoia (e.g., by encoding it in a format Paranoia doesn’t understand). In general Paranoia isn’t designed to defend against an adversary with supply chain write access intentionally sneaking obfuscated certificate authorities into container images.
 
 ## Command Line Usage
 
