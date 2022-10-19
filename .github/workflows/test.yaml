@@ -76,6 +76,8 @@ jobs:
   # Paranoia on itself that we are shipping only the correct certs internally.
   paranoia-action-self-check:
     runs-on: ubuntu-latest
+    env:
+      CONTAINER_TAR: container.tar
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v3
@@ -95,6 +97,7 @@ jobs:
           cache-to: type=gha,mode=max
           outputs: type=docker,dest=${{ env.CONTAINER_TAR }}
 
-      - uses: ./
+      - name: Paranoia Self-Check
+        uses: ./
         with:
           target_tar: file://${{ env.CONTAINER_TAR }}
