@@ -23,7 +23,7 @@ func newValidation(ctx context.Context) *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "validate",
+		Use:   "validate [flags] image",
 		Short: "Validate that the certificates in a container image conform to a provided config",
 		Long: `Validate checks the trust bundles found in a given container image against policy
 specified in a given configuration file (.paranoia.yaml by default). For example:
@@ -117,6 +117,7 @@ paranoia validate alpine:latest --config some-config.yaml`,
 
 	imgOpts = options.RegisterImage(cmd)
 	valOpts = options.RegisterValidation(cmd)
+	cmd.Args = cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs)
 
 	return cmd
 }
