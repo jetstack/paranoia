@@ -30,6 +30,6 @@ runs:
   args:
     - validate
     - --config ${{ inputs.config }}
-    - ${{ if inputs.permissive == 'true' }} --permissive ${{ end }}
-    - ${{ if inputs.quiet == 'true' }} --quiet ${{ end }}
+    - --permissive ${{ inputs.permissive }}
+    - --quiet ${{ inputs.quiet }}
     - ${{ inputs.target_tar }}
