@@ -72,3 +72,27 @@ jobs:
 
       - name: Export Command Test
         run: it/export.sh
+  paranoia-self-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and export to Docker
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          outputs: type=docker,dest=${{ env.CONTAINER_TAR }}
+
+      - uses: ./
+        with:
+          target_tar: file://${{ env.CONTAINER_TAR }}
