@@ -1,25 +1,35 @@
-name: Paranoia
-description: >
-  Scan your Docker images' CA's
+name: Jetstack Paranoia
+description: |
+  Validate the presence or absence of certificate authorities in your container image.
 inputs:
-  action:
-    description: Which Paranoia action do you want to take. |
-      Available options are `validate`, `export`, `inspect`
-    required: false
-    default: validate
   target_tar:
-    description: Thing to inspect. Should be on the format `file://<file>`
-    required: true
-  paranoia_file:
     description: |
-      File containing the required, forbidden or allowed CA's
-    default: ".paranoia.yaml"
-    required: false
-
-
+      Link to a .tar file of a container image to inspect.
+      Should be on the format `file://<file>`
+    required: true
+  config:
+    description: |
+      Path to paranoia configuration file
+    default: .paranoia.yaml
+  permissive:
+    description: |
+      Permissive mode only validates that certificate authorities that are forbidden in your
+      config file are not present, or ones that are required are present. All other certificate
+      authorities are permitted.
+    default: 'false'
+  quiet:
+    description: |
+      On a validation failure, don't actually fail the action.
+    default: 'false'
+branding:
+  icon: award
+  color: yellow
 runs:
   using: 'docker'
   image: 'Dockerfile'
   args:
-    - ${{ inputs.action }}
+    - validate
+    - --config ${{ inputs.config }}
+    - ${{ if inputs.permissive == 'true' }} --permissive ${{ end }}
+    - ${{ if inputs.quiet == 'true' }} --quiet ${{ end }}
     - ${{ inputs.target_tar }}
