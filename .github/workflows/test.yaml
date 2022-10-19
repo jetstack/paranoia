@@ -72,7 +72,9 @@ jobs:
 
       - name: Export Command Test
         run: it/export.sh
-  paranoia-self-check:
+  # This action tests two things: That the GitHub Action works (as defined in the action.yml file) and by running
+  # Paranoia on itself that we are shipping only the correct certs internally.
+  paranoia-action-self-check:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout code"
