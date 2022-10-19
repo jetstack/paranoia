@@ -29,7 +29,7 @@ runs:
   image: 'Dockerfile'
   args:
     - validate
-    - --config ${{ inputs.config }}
+    - --config=${{ inputs.config }}
     - --permissive=${{ inputs.permissive }}
     - --quiet=${{ inputs.quiet }}
     - ${{ inputs.target_tar }}
