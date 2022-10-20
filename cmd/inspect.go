@@ -19,7 +19,7 @@ func newInspect(ctx context.Context) *cobra.Command {
 	var imgOpts *options.Image
 
 	cmd := &cobra.Command{
-		Use:   "inspect",
+		Use:   "inspect [flags] image",
 		Short: "Inspect a container image for root certificates",
 		PreRunE: func(_ *cobra.Command, args []string) error {
 			return options.MustSingleImageArgs(args)
@@ -86,6 +86,7 @@ func newInspect(ctx context.Context) *cobra.Command {
 	}
 
 	imgOpts = options.RegisterImage(cmd)
+	cmd.Args = cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs)
 
 	return cmd
 }

@@ -26,7 +26,7 @@ func newExport(ctx context.Context) *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "export",
+		Use:   "export [flags] image",
 		Short: "Export all certificate data for later use",
 		PreRunE: func(_ *cobra.Command, args []string) error {
 			if err := options.MustSingleImageArgs(args); err != nil {
@@ -127,6 +127,7 @@ func newExport(ctx context.Context) *cobra.Command {
 
 	imgOpts = options.RegisterImage(cmd)
 	outOpts = options.RegisterOutputs(cmd)
+	cmd.Args = cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs)
 
 	return cmd
 }
