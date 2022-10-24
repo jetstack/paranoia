@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
 
-func newRoot(ctx context.Context) *cobra.Command {
+func NewRoot(ctx context.Context) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "paranoia",
 		Short: "Inspect container image trust bundles",
@@ -27,7 +27,7 @@ func newRoot(ctx context.Context) *cobra.Command {
 
 func Execute() {
 	ctx := signals.SetupSignalHandler()
-	if err := newRoot(ctx).Execute(); err != nil {
+	if err := NewRoot(ctx).Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
