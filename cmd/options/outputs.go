@@ -13,9 +13,15 @@ const (
 	OutputModePretty = "pretty"
 	OutputModeJSON   = "json"
 	OutputModeWide   = "wide"
+	OutputModePEM    = "pem"
 )
 
-var outputModes = []string{OutputModePretty, OutputModeJSON, OutputModeWide}
+var outputModes = []string{
+	OutputModePretty,
+	OutputModeJSON,
+	OutputModeWide,
+	OutputModePEM,
+}
 
 // Output are options for configuring command outputs.
 type Output struct {
