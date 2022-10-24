@@ -97,9 +97,14 @@ File Location                       Subject
 Found 140 certificates
 ```
 
-### Global flags
+The `--output` (or `-o`) flag allows specifying the output mode for export.
 
-`-o --output`: Allows specification of the output mode. Supports `pretty`, `wide`, and `json`. Defaults to `pretty`.
+- `--output pretty` is the default, and gives a table view of the data.
+- `--output wide` also uses a table layout, but includes more infomation.
+- `--output json` emits JSON.
+- `--output pem` emits all full certificates in PEM format.
+
+### Global flags
 
 `--platform`: Specifies the platform in the form `os/arch[/variant][:osversion]` (e.g. `linux/amd64`)
 
