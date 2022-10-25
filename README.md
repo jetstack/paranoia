@@ -67,7 +67,7 @@ EOF
 paranoia validate my-image
 ```
 
-Or find certificates inside binaries:
+Find certificates inside binaries:
 
 ```shell
 paranoia export -o json consul:latest | jq '.certificates[] | select(.fileLocation == "/bin/consul")'

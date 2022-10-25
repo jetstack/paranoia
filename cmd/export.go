@@ -6,7 +6,9 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/fatih/color"
@@ -134,6 +136,13 @@ Pipe certificate information into jq:
 				}
 
 				fmt.Println(string(m))
+			} else if outOpts.Mode == options.OutputModePEM {
+				for _, cert := range parsedCertificates.Found {
+					pem.Encode(os.Stdout, &pem.Block{
+						Type:  "CERTIFICATE",
+						Bytes: cert.Certificate.Raw,
+					})
+				}
 			}
 
 			return nil
