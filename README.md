@@ -12,6 +12,20 @@ This gives you visibility into which certificate authorities your container imag
 
 Paranoia is built by [Jetstack](https://jetstack.io) and made available under the Apache 2.0 license, see [LICENSE.txt](LICENSE.txt).
 
+## Installation
+
+### Binaries
+
+Binaries for common platforms and architectures are provided on the [releases](https://github.com/jetstack/paranoia/releases/latest).
+
+### Go Install
+
+If you have [Go](https://go.dev/) installed you can install Paranoia using Go directly.
+
+```shell
+go install github.com/jetstack/paranoia@latest
+```
+
 ## Examples
 
 Paranoia can be used to list out the certificates in a container image:
