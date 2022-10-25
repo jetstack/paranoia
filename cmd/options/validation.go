@@ -17,7 +17,7 @@ type Validation struct {
 
 func RegisterValidation(cmd *cobra.Command) *Validation {
 	var opts Validation
-	cmd.PersistentFlags().StringVarP(&opts.Config, "config", "c", ".paranoia.yaml", "Configuration file for Paranoia")
+	cmd.PersistentFlags().StringVarP(&opts.Config, "config", "c", ".paranoia.yaml", "Path to configuration file for Paranoia's validate mode.")
 	cmd.PersistentFlags().BoolVar(&opts.Quiet, "quiet", false, "Suppress nonzero exit code on validation failures.")
 	cmd.PersistentFlags().BoolVar(&opts.Permissive, "permissive", false, "Allow any certificate that is not otherwise forbidden. This overrides the config's allow list.")
 	return &opts

@@ -27,7 +27,22 @@ func newExport(ctx context.Context) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "export [flags] image",
-		Short: "Export all certificate data for later use",
+		Short: "Export all certificate authorities in the given container image",
+		Long: `
+Exports all certificates found in the container image.
+The detail available depends on the output mode used
+
+In most output modes, partial certificates are also included after the main output.
+`,
+		Example: `
+Export certificates for an image:
+
+	$ paranoia export alpine:latest
+
+Pipe certificate information into jq:
+
+	$ paranoia export --output json alpine:latest | jq '.certificates[].fingerprintSHA256'
+`,
 		PreRunE: func(_ *cobra.Command, args []string) error {
 			if err := options.MustSingleImageArgs(args); err != nil {
 				return err
