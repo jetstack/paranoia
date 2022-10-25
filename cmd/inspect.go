@@ -20,7 +20,16 @@ func newInspect(ctx context.Context) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "inspect [flags] image",
-		Short: "Inspect a container image for root certificates",
+		Short: "Summarise potential issues with certificates",
+		Long: `
+Inspect prints out certificates that have one or more of the following faults:
+
+- Expired (based on current system time).
+- Close to expiry (based on current system time).
+- Removed by Mozilla from their certificate authority bundle.
+
+Partial certificates are also all printed for further inspection.
+`,
 		PreRunE: func(_ *cobra.Command, args []string) error {
 			return options.MustSingleImageArgs(args)
 		},

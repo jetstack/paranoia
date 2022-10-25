@@ -2,82 +2,33 @@
 
 _Who do you trust?_
 
-Paranoia is a tool to analyse and export trust bundles (e.g., "ca-certificates") from container images. These certificates identify the certificate authorites that your container trusts when establishing TLS connections. The design of TLS is that any certificate authority that your container trusts can issue a certificate for any domain. This means that a malicious or compromised certificate authority could issue a certificate to impersonate any other service, including your internal infrastructure.
+Paranoia is a tool to analyse and export trust bundles (e.g., "ca-certificates") from container images.
+These certificates identify the certificate authorities that your container trusts when establishing TLS connections.
+The design of TLS is that any certificate authority that your container trusts can issue a certificate for any domain.
+This means that a malicious or compromised certificate authority could issue a certificate to impersonate any other service, including your internal infrastructure.
 
-Paranoia can be used to inspect and validate the certificates within your container images. This gives you visibility into which certificate authorities your container images are trusting; allows you to forbid or require certificates at build-time in CI; and help you decide _who to trust_ in your container images.
+Paranoia can be used to inspect and validate the certificates within your container images.
+This gives you visibility into which certificate authorities your container images are trusting; allows you to forbid or require certificates at build-time in CI; and help you decide _who to trust_ in your container images.
 
 Paranoia is built by [Jetstack](https://jetstack.io) and made available under the Apache 2.0 license, see [LICENSE.txt](LICENSE.txt).
 
-## Limitations
+## Installation
 
-Paranoia will detect certificate authorities in most cases, and is especially useful at finding accidental inclusion or for conducting a certificate authority inventory. However there are some limitations to bear in mind while using Paranoia:
-- Paranoia only functions on container images, not running containers. Anything added into the container at runtime is not seen.
-- If a certificate is found, that doesn’t guarantee that the container will trust it as a certificate authority. It could, for example, be an unused leftover file.
-- It’s possible for an attacker to ‘hide’ a certificate authority from Paranoia (e.g., by encoding it in a format Paranoia doesn’t understand). In general Paranoia isn’t designed to defend against an adversary with supply chain write access intentionally sneaking obfuscated certificate authorities into container images.
+### Binaries
 
-## Command Line Usage
+Binaries for common platforms and architectures are provided on the [releases](https://github.com/jetstack/paranoia/releases/latest).
 
-### Inspect
+### Go Install
 
-Checks found certificates and reports on whether they're valid, expired, due to expire in the next 6 months or are on
-[Mozilla's Removed CA Certificate Report](https://ccadb-public.secure.force.com/mozilla/RemovedCACertificateReportCSVFormat).
+If you have [Go](https://go.dev/) installed you can install Paranoia using Go directly.
 
 ```shell
-$ paranoia inspect alpine:latest
-Certificate CN=Hellenic Academic and Research Institutions RootCA 2011,O=Hellenic Academic and Research Institutions Cert. Authority,C=GR
-┗ 🚨 removed from Mozilla trust store, no reason given
-Certificate CN=Staat der Nederlanden EV Root CA,O=Staat der Nederlanden,C=NL
-┗ ⚠️️ expires soon ( expires on 2022-12-08T11:10:28Z, 20 weeks 6 days until expiry)
-Found 132 certificates total, of which 2 had issues
+go install github.com/jetstack/paranoia@latest
 ```
 
-### Validate
+## Examples
 
-Compares found certificates against a given configuration file (`.paranoia.yaml` by default) and reports on any
-conflicts.
-
-**Flags:**
-
-`--permissive`: Enables permissive mode, allowing all certificates unless explicitly forbidden. When not
-enabled `validate` defaults to `strict` mode where all certificates are forbidden unless explicitly allowed.
-
-`--quiet`: Forces the process to end with exit code 0 regardless of whether conflicts are found. Output remains the same.
-
-`-c --config`: Takes a file path and allows the use of a specified config file rather than the default, `.paranoia.yaml`.
-
-Example config:
-```yaml
-version: "1"
-allow:
-  - fingerprints:
-      sha256: 30FBBA2C32238E2A98547AF97931E550428B9B3F1C8EEB6633DCFA86C5B27DD3
-    comment: "A certificate we're okay with but don't explicitly need"
-forbid:
-  - fingerprints:
-      sha256: 4348A0E9444C78CB265E058D5E8944B4D84F9662BD26DB257F8934A443C70161
-    comment: "A certificate we definitely don't want"
-require:
-  - fingerprints:
-      sha1: a7c36ea226e1adc60c4aa7866b79ed9e7831103c
-    comment: "A certificate that must be present"
-```
-
-```shell
-$ paranoia validate some-image:latest --config some_config.yaml
-Validating certificates with 1 allowed, 1 forbidden, and 1 required certificates, in strict mode
-Scanned 3 certificates in image some-image:latest, found issues.
-Certificate with SHA256 fingerprint 4348A0E9444C78CB265E058D5E8944B4D84F9662BD26DB257F8934A443C70161 in location etc/ssl/certs/ca-certificates.crt was forbidden Comment: A certificate we definitely don't want 
-Certificate with SHA256 fingerprint 30FBBA2C32238E2A98547AF97931E550428B9B3F1C8EEB6633DCFA86C5B27DD3 in location etc/ssl/certs/ca-certificates.crt was not allowed
-Certificate with SHA1 a7c36ea226e1adc60c4aa7866b79ed9e7831103c was required, but was not found Comment: A certificate that must be present
-exit status 1
-```
-**Note:** Comments on allowed certificate fingerprints will never be displayed in the output as we don't report on
-allowances. However, they can be very helpful for anyone who needs to maintain the file.
-
-### Export
-
-Outputs data on all found certificates, including the file location, owner, valid from and valid to dates and the SHA256
-fingerprint (useful for populating a config file for use with the `validate` command).
+Paranoia can be used to list out the certificates in a container image:
 
 ```shell
 $ paranoia export alpine:latest
@@ -85,59 +36,66 @@ File Location                       Subject
 /etc/ssl/certs/ca-certificates.crt  CN=ACCVRAIZ1,OU=PKIACCV,O=ACCV,C=ES                                                                                                                                            
 /etc/ssl/certs/ca-certificates.crt  OU=AC RAIZ FNMT-RCM,O=FNMT-RCM,C=ES                                                                                                                                            
 /etc/ssl/certs/ca-certificates.crt  CN=AC RAIZ FNMT-RCM SERVIDORES SEGUROS,OU=Ceres,O=FNMT-RCM,C=ES,2.5.4.97=#130f56415445532d51323832363030344a                                                                   
-/etc/ssl/certs/ca-certificates.crt  SERIALNUMBER=G63287510,CN=ANF Secure Server Root CA,OU=ANF CA Raiz,O=ANF Autoridad de Certificacion,C=ES                                                                       
-/etc/ssl/certs/ca-certificates.crt  CN=Actalis Authentication Root CA,O=Actalis S.p.A./03358520967,L=Milan,C=IT                                                                                                    
-/etc/ssl/certs/ca-certificates.crt  CN=AffirmTrust Commercial,O=AffirmTrust,C=US                                                                                                                                   
-/etc/ssl/certs/ca-certificates.crt  CN=AffirmTrust Networking,O=AffirmTrust,C=US                                                                                                                                   
-/etc/ssl/certs/ca-certificates.crt  CN=AffirmTrust Premium,O=AffirmTrust,C=US                                                                                                                                      
-/etc/ssl/certs/ca-certificates.crt  CN=AffirmTrust Premium ECC,O=AffirmTrust,C=US
 …
 /etc/ssl/certs/ca-certificates.crt  CN=vTrus ECC Root CA,O=iTrusChina Co.\,Ltd.,C=CN                                                                                                                               
 /etc/ssl/certs/ca-certificates.crt  CN=vTrus Root CA,O=iTrusChina Co.\,Ltd.,C=CN                                                                                                                                   
 Found 140 certificates
 ```
 
-The `--output` (or `-o`) flag allows specifying the output mode for export.
+Export them for further audit:
 
-- `--output pretty` is the default, and gives a table view of the data.
-- `--output wide` also uses a table layout, but includes more infomation.
-- `--output json` emits JSON.
-- `--output pem` emits all full certificates in PEM format.
+```shell
+paranoia export --output json python:3 | jq '.certificates[].fingerprintSHA256' | head -n 5
 
-### Global flags
-
-`--platform`: Specifies the platform in the form `os/arch[/variant][:osversion]` (e.g. `linux/amd64`)
-
-## CI Usage
-
-The functionality of Paranoia is well suited to running in CI pipelines, either producing reports on a schedule or
-as a check before or after the release of a new container image.
-
-Below are some examples:
-
-### GitHub Actions
-
-Paranoia is used on itself after container image build to confirm that it only contains the certificates that we expect.
-The full workflow can be found [here](.github/workflows/publish.yaml).
-
-In it we use our [paranoia action](action.yml) to run the validation, using the `file://` prefix to read the container
-image from a local file, as opposed to pulling it from a container registry:
-
-```yaml
-...
-- name: Build and export to Docker
-  uses: docker/build-push-action@v3
-  with:
-    context: .
-    load: true
-    cache-from: type=gha
-    cache-to: type=gha,mode=max
-    outputs: type=docker,dest=${{ env.CONTAINER_TAR }}
-
-- name: "Run Paranoia container"
-  uses: ./
-  with:
-    action: validate
-    target_tar: file://${{ env.CONTAINER_TAR }}
-...
+"ebd41040e4bb3ec742c9e381d31ef2a41a48b6685c96e7cef3c1df6cd4331c99"
+"6dc47172e01cbcb0bf62580d895fe2b8ac9ad4f873801e0c10b9c837d21eb177"
+"16af57a9f676b0ab126095aa5ebadef22ab31119d644ac95cd4b93dbf3f26aeb"
+"73c176434f1bc6d5adf45b0e76e727287c8de57616c1e6e6141a2b2cbc7d8e4c"
+"d7a7a0fb5d7e2731d771e9484ebcdef71d5f0c3e0a2948782bc83ee0ea699ef4"
 ```
+
+Detect internal certificates left over from internal testing:
+
+```shell
+cat << EOF > .paranoia.yaml
+version: "1"
+forbid:
+  - comment: "An internal-only cert"
+    fingerprints:
+      sha256: bd40be0eccfce513ab318882f03962e4e2ec3799b51392e82805d9249e426d28
+EOF
+paranoia validate my-image
+```
+
+Find certificates inside binaries:
+
+```shell
+paranoia export -o json consul:latest | jq '.certificates[] | select(.fileLocation == "/bin/consul")'
+{
+  "fileLocation": "/bin/consul",
+  "owner": "CN=Circonus Certificate Authority,OU=Circonus,O=Circonus\\, Inc.,L=Columbia,ST=Maryland,C=US,1.2.840.113549.1.9.1=#0c0f636140636972636f6e75732e6e6574",
+  "parser": "pem",
+  "signature": "01C1B65D790706D2CAAD1D30406911D41884789A9D4FEBBCE31EE7B7628019A8C7B6643C46C1FDB684B18272B33880DAB68EB51C5546D731B9948C8A3D918890EC2F1CC8A751FAD1786BF2599FEEA17A63EB1997B577E8A65B9F67B368EA11B6C425F5D86A10C7BCCE02FBEA9F5867913AF409749A08A27D3B5EC8D8E332E216",
+  "notBefore": "2009-12-23T19:17:06Z",
+  "notAfter": "2019-12-21T19:17:06Z",
+  "fingerprintSHA1": "063ff657e055b0036d794cda892c85417c07739a",
+  "fingerprintSHA256": "0c97e0898343c5b1973c6568a15c8c853dd663d363020071e34f789859ece19f"
+}
+```
+
+## Limitations
+
+Paranoia will detect certificate authorities in most cases, and is especially useful at finding accidental inclusion or for conducting a certificate authority inventory.
+However, there are some limitations to bear in mind while using Paranoia:
+
+- Paranoia only functions on container images, not running containers.
+  Anything added into the container at runtime is not seen.
+- If a certificate is found, that doesn’t guarantee that the container will trust it as a certificate authority.
+  It could, for example, be an unused leftover file.
+- It’s possible for an attacker to ‘hide’ a certificate authority from Paranoia (e.g., by encoding it in a format Paranoia doesn’t understand).
+  In general Paranoia isn’t designed to defend against an adversary with supply chain write access intentionally sneaking obfuscated certificate authorities into container images.
+
+## Usage
+
+The usage documentation for Paranoia is included in the help text.
+Invoke a command with `--help` for usage instructions, or see the manual pages.
