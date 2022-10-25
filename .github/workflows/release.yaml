@@ -21,6 +21,17 @@ jobs:
           name: paranoia-${{ matrix.os }}-${{ matrix.arch }}
           path: paranoia
 
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Documentation Build
+        run: go run ./hack/generate-manual
+      - uses: actions/upload-artifact@v3
+        with:
+          name: man-pages
+          path: man/
+
   release:
     needs:
       - build
@@ -37,9 +48,12 @@ jobs:
           mv paranoia-darwin-arm64/paranoia bin/paranoia-darwin-arm64 
           mv paranoia-linux-amd64/paranoia bin/paranoia-linux-amd64 
           mv paranoia-linux-arm64/paranoia bin/paranoia-linux-arm64
+          mkdir man
+          mv man-pages/* man/
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             LICENSE.txt
             bin/paranoia-*
+            man/*
