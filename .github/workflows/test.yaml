@@ -72,6 +72,16 @@ jobs:
 
       - name: Export Command Test
         run: it/export.sh
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Documentation Build
+        run: go run ./hack/generate-manual
+      - uses: actions/upload-artifact@v3
+        with:
+          name: man-pages
+          path: man/
   # This action tests two things: That the GitHub Action works (as defined in the action.yml file) and by running
   # Paranoia on itself that we are shipping only the correct certs internally.
   paranoia-action-self-check:
