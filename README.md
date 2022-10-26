@@ -14,9 +14,21 @@ Paranoia is built by [Jetstack](https://jetstack.io) and made available under th
 
 ## Installation
 
+### Homebrew
+
+On macOS and Linux, if you have [Homebrew](https://brew.sh) you can install Paranoia with:
+
+```shell
+brew install jetstack/jetstack/paranoia
+```
+
+This will also install man pages and shell completion.
+
 ### Binaries
 
 Binaries for common platforms and architectures are provided on the [releases](https://github.com/jetstack/paranoia/releases/latest).
+Man pages are also attached to the release.
+You can generate shell completion from Paranoia itself with `paranoia completion`.
 
 ### Go Install
 
