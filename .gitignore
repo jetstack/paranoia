@@ -4,3 +4,8 @@ paranoia
 
 /.idea
 man/
+
+# apko & melange
+packages/
+melange.rsa*
+
