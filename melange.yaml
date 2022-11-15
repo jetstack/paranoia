@@ -1,0 +1,26 @@
+package:
+  name: paranoia
+  version: 0.2.1
+  description: Inspect certificate authorities in container images
+  target-architecture:
+    - all
+  copyright:
+    - license: Apache-2.0
+      paths:
+        - "*"
+
+environment:
+  contents:
+    repositories:
+      - https://dl-cdn.alpinelinux.org/alpine/edge/main
+      - https://dl-cdn.alpinelinux.org/alpine/edge/community
+    packages:
+      - alpine-baselayout-data
+      - ca-certificates-bundle
+      - busybox
+      - go
+
+pipeline:
+  - name: Build Go application
+    runs: |
+      CGO_ENABLED=0 go build -o "${{targets.destdir}}/usr/bin/paranoia" .
