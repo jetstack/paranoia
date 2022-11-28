@@ -3,6 +3,7 @@ contents:
     - https://dl-cdn.alpinelinux.org/alpine/edge/main
     - '@local /work/packages'
   packages:
+    # Importantly there is *no* ca-certificates package here
     - alpine-baselayout-data
     - paranoia@local
 accounts:
