@@ -26,7 +26,7 @@ branding:
   color: yellow
 runs:
   using: 'docker'
-  image: 'Dockerfile'
+  image: 'docker://ghcr.io/jetstack/paranoia:latest'
   args:
     - validate
     - --config=${{ inputs.config }}
