@@ -97,7 +97,7 @@ jobs:
       - uses: chainguard-dev/actions/melange-build@main
       - uses: chainguard-dev/actions/apko-build@main
         with:
-          uses: apko-certless.yaml
+          config: apko-certless.yaml
           tag: ghcr.io/jetstack/paranoia-certless:${{ github.sha }}
 
       - name: Paranoia Self-Check
