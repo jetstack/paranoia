@@ -95,7 +95,7 @@ jobs:
         uses: actions/checkout@v3
 
       - uses: chainguard-dev/actions/melange-build@main
-      - uses: chainguard-dev/apko/apko-build@main
+      - uses: chainguard-dev/actions/apko-build@main
         with:
           uses: apko-certless.yaml
           tag: ghcr.io/jetstack/paranoia-certless:${{ github.sha }}
