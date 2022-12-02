@@ -101,6 +101,6 @@ jobs:
           tag: ghcr.io/jetstack/paranoia-certless:${{ github.sha }}
 
       - name: Paranoia Self-Check
-          run: |
-            docker load < "${{ env.CONTAINER_TAR }}"
-            docker run -v "${{ env.CONTAINER_TAR }}:/work" export 
+        run: |
+          docker load < "${{ env.CONTAINER_TAR }}"
+          docker run -v "${{ env.CONTAINER_TAR }}:/work" export 
