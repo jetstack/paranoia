@@ -86,9 +86,7 @@ jobs:
         with:
           name: man-pages
           path: man/
-  # This action tests two things: That the GitHub Action works (as defined in the action.yml file) and by running
-  # Paranoia on itself that we are shipping only the correct certs internally.
-  paranoia-action-self-check:
+  container-self-check:
     runs-on: ubuntu-latest
     env:
       CONTAINER_TAR: container.tar
@@ -96,22 +94,13 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v3
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Build and export to Docker
-        uses: docker/build-push-action@v3
+      - uses: chainguard-dev/actions/melange-build@main
+      - uses: chainguard-dev/apko/apko-build@main
         with:
-          context: .
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          outputs: type=docker,dest=${{ env.CONTAINER_TAR }}
+          uses: apko-certless.yaml
+          tag: ghcr.io/jetstack/paranoia-certless:${{ github.sha }}
 
       - name: Paranoia Self-Check
-        uses: ./
-        with:
-          target_tar: file://${{ env.CONTAINER_TAR }}
+          run: |
+            docker load < "${{ env.CONTAINER_TAR }}"
+            docker run -v "${{ env.CONTAINER_TAR }}:/work" export 
