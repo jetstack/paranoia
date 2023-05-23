@@ -40,6 +40,8 @@ jobs:
     needs:
       - build
     runs-on: ubuntu-latest
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
     permissions:
       contents: write
     steps:
@@ -54,6 +56,11 @@ jobs:
           mv paranoia-linux-arm64/paranoia bin/paranoia-linux-arm64
           mkdir man
           mv man-pages/* man/
+      - name: Generate hashes
+        shell: bash
+        id: hash
+        run: |
+          echo "hashes=$(sha256sum bin/paranoia-darwin-amd64 bin/paranoia-darwin-arm64 bin/paranoia-linux-amd64 bin/paranoia-linux-arm64 | base64 -w0)" >> "$GITHUB_OUTPUT"
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
@@ -61,3 +68,14 @@ jobs:
             LICENSE.txt
             bin/paranoia-*
             man/*
+  
+  provenance-for-binaries:
+    needs:
+      - release 
+    permissions:
+      actions: read # Needed for detection of GitHub Actions environment.
+      id-token: write # Needed for provenance signing and ID.
+      contents: write # Needed for release uploads.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.5.0
+    with:
+      base64-subjects: "${{ needs.release.outputs.hashes }}"
