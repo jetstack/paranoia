@@ -1,0 +1,27 @@
+package:
+  name: paranoia
+  version: 0.2.1
+  description: Inspect certificate authorities in container images
+  target-architecture:
+    - all
+  copyright:
+    - license: Apache-2.0
+      paths:
+        - "*"
+
+environment:
+  contents:
+    keyring:
+      - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+    repositories:
+      - https://packages.wolfi.dev/os
+    packages:
+      - wolfi-baselayout
+      - ca-certificates-bundle
+      - busybox
+      - go
+
+pipeline:
+  - name: Build Go application
+    runs: |
+      CGO_ENABLED=0 go build -o "${{targets.destdir}}/usr/bin/paranoia" .

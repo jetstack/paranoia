@@ -1,0 +1,24 @@
+contents:
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+  repositories:
+    - https://packages.wolfi.dev/os
+    - '@local /work/packages'
+  packages:
+    # This is the Wolfi CA certs bundle. The source can be found at https://github.com/wolfi-dev/os/blob/main/ca-certificates.yaml,
+    # but in essence it will download the Alpine CAcerts.
+    - ca-certificates-bundle
+    - paranoia@local
+
+accounts:
+  groups:
+    - groupname: nonroot
+      gid: 65532
+  users:
+    - username: nonroot
+      uid: 65532
+  run-as: 65532
+
+entrypoint:
+  command: /usr/bin/paranoia
+ 

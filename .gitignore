@@ -4,3 +4,11 @@ paranoia
 
 /.idea
 man/
+
+# apko & melange
+packages/
+melange.rsa*
+output.tar
+sbom-*.cdx
+sbom-*.spdx.json
+
