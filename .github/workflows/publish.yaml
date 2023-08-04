@@ -98,7 +98,7 @@ jobs:
         actions: read # for detecting the Github Actions environment.
         id-token: write # for creating OIDC tokens for signing.
         packages: write # for uploading attestations.
-      uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v1.6.0
+      uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v1.8.0
       with:
         image: ghcr.io/${{ github.repository }}
         # The image digest is used to prevent TOCTOU issues.
