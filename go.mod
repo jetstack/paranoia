@@ -3,7 +3,7 @@ module github.com/jetstack/paranoia
 go 1.19
 
 require (
-	github.com/fatih/color v1.15.0
+	github.com/fatih/color v1.16.0
 	github.com/google/go-cmp v0.5.9
 	github.com/google/go-containerregistry v0.15.2
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
@@ -27,7 +27,7 @@ require (
 	github.com/klauspost/compress v1.16.5 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.17 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc3 // indirect
@@ -38,5 +38,5 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/vbatts/tar-split v0.11.3 // indirect
 	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/sys v0.14.0 // indirect
 )
