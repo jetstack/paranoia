@@ -3,7 +3,7 @@ module github.com/jetstack/paranoia
 go 1.19
 
 require (
-	github.com/fatih/color v1.15.0
+	github.com/fatih/color v1.16.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-containerregistry v0.15.2
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
