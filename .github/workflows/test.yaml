@@ -82,7 +82,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Documentation Build
         run: go run ./hack/generate-manual
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: man-pages
           path: man/
