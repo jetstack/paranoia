@@ -13,12 +13,12 @@ jobs:
     paranoia-inception:
       runs-on: ubuntu-latest
       outputs:
-        image: ${{ steps.build-and-push.outputs.image }}
+        image: ${{ steps.build-and-push.outputs.imageid }}
         digest: ${{ steps.build-and-push.outputs.digest }}
       permissions:
         contents: read
         packages: write
-        id-token: write # for creating OIDC tokens for signing.
+        id-token: write # For creating OIDC tokens for signing.
       steps:
         - name: Log in to the Container registry
           uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d
@@ -31,7 +31,7 @@ jobs:
           uses: actions/checkout@v4
 
         - name: Set up QEMU
-          uses: docker/setup-qemu-action@v2
+          uses: docker/setup-qemu-action@v3
 
         - name: Set up Docker Buildx
           uses: docker/setup-buildx-action@v3
@@ -39,9 +39,9 @@ jobs:
         # Install the cosign tool except on PR
         # https://github.com/sigstore/cosign-installer
         - name: Install cosign
-          uses: sigstore/cosign-installer@e1523de7571e31dbe865fd2e80c5c7c23ae71eb4 #v3.0.3
+          uses: sigstore/cosign-installer@3.8.1
           with:
-            cosign-release: 'v2.0.2'
+            cosign-release: 'v2.4.3'
 
 
         - name: Extract metadata (tags, labels) for Docker
@@ -90,8 +90,8 @@ jobs:
           env:
             TAGS: ${{ steps.meta.outputs.tags }}
             DIGEST: ${{ steps.build-and-push.outputs.digest }}
-          run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
-    
+          run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@"${DIGEST}"
+
     provenance-for-images:
       needs: [paranoia-inception]
       permissions:
