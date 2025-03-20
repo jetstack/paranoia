@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.1
 
 require (
-	github.com/fatih/color v1.16.0
+	github.com/fatih/color v1.18.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-containerregistry v0.20.3
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
