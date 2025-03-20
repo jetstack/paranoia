@@ -55,7 +55,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.19.x
+          go-version: 1.23.x
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -78,7 +78,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.19.x
+          go-version: 1.23.x
       - uses: actions/checkout@v4
       - name: Documentation Build
         run: go run ./hack/generate-manual
