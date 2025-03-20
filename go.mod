@@ -1,7 +1,6 @@
 module github.com/jetstack/paranoia
 
 go 1.23
-toolchain go1.24.1
 
 require (
 	github.com/fatih/color v1.16.0
