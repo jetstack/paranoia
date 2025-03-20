@@ -1,4 +1,4 @@
-FROM golang:1.19-alpine as builder
+FROM golang:1.23-alpine as builder
 WORKDIR /go/src/github.com/jetstack/paranoia
 
 # Download necessary Go modules
