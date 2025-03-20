@@ -62,7 +62,7 @@ jobs:
         run: |
           echo "hashes=$(sha256sum bin/paranoia-darwin-amd64 bin/paranoia-darwin-arm64 bin/paranoia-linux-amd64 bin/paranoia-linux-arm64 | base64 -w0)" >> "$GITHUB_OUTPUT"
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             LICENSE.txt
