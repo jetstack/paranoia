@@ -16,7 +16,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.19.x
+          go-version: 1.23.x
       - uses: actions/checkout@v4
       - name: Go Build
         run: CGO_ENABLED=0 GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -a -installsuffix cgo -o paranoia .
@@ -50,9 +50,9 @@ jobs:
       - name: Rename Artifacts
         run: |
           mkdir bin
-          mv paranoia-darwin-amd64/paranoia bin/paranoia-darwin-amd64 
-          mv paranoia-darwin-arm64/paranoia bin/paranoia-darwin-arm64 
-          mv paranoia-linux-amd64/paranoia bin/paranoia-linux-amd64 
+          mv paranoia-darwin-amd64/paranoia bin/paranoia-darwin-amd64
+          mv paranoia-darwin-arm64/paranoia bin/paranoia-darwin-arm64
+          mv paranoia-linux-amd64/paranoia bin/paranoia-linux-amd64
           mv paranoia-linux-arm64/paranoia bin/paranoia-linux-arm64
           mkdir man
           mv man-pages/* man/
@@ -68,10 +68,10 @@ jobs:
             LICENSE.txt
             bin/paranoia-*
             man/*
-  
+
   provenance-for-binaries:
     needs:
-      - release 
+      - release
     permissions:
       actions: read # Needed for detection of GitHub Actions environment.
       id-token: write # Needed for provenance signing and ID.
