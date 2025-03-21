@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/fatih/color"
@@ -60,7 +61,8 @@ Partial certificates are also all printed for further inspection.
 				notes := analyser.AnalyseCertificate(cert.Certificate)
 				if len(notes) > 0 {
 					numIssues++
-					fmt.Printf("Certificate %s\n", cert.Certificate.Subject)
+					fingerprint := hex.EncodeToString(cert.FingerprintSha256[:])
+					fmt.Printf("Certificate %s, Fingerprint: %s\n", cert.Certificate.Subject, fingerprint)
 					for i, n := range notes {
 						var lead string
 						if i == len(notes)-1 {
@@ -85,7 +87,7 @@ Partial certificates are also all printed for further inspection.
 			if len(parsedCertificates.Partials) > 0 {
 				for _, p := range parsedCertificates.Partials {
 					fmtFn := color.New(color.FgYellow).SprintfFunc()
-					fmt.Printf(fmtFn("⚠️ Partial certificate found in file %s: %s\n", p.Location, p.Reason))
+					fmt.Print(fmtFn("⚠️ Partial certificate found in file %s: %s\n", p.Location, p.Reason))
 				}
 				fmt.Printf("Found %d partial certificates\n", len(parsedCertificates.Partials))
 			}
