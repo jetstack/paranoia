@@ -16,8 +16,10 @@ import (
 type NoteLevel string
 
 const (
-	NoteLevelWarn  NoteLevel = "warn"
-	NoteLevelError NoteLevel = "error"
+	NoteLevelWarn     NoteLevel = "warn"
+	NoteLevelError    NoteLevel = "error"
+	fingerprintHeader           = "SHA-256 Fingerprint"
+	commentsHeader              = "Comments"
 )
 
 type Note struct {
@@ -53,45 +55,46 @@ func downloadMozillaRemovedCACertsList() ([]removedCertificate, error) {
 		return nil, err
 	}
 	csvReader := csv.NewReader(resp.Body)
-	csvLines, err := csvReader.ReadAll()
+	// Read the header first
+	headers, err := csvReader.Read()
 	if err != nil {
 		return nil, err
 	}
 
-	removedCerts := make([]removedCertificate, len(csvLines))
-	for i, csvLine := range csvLines {
-		// Skip the header row
-		if i == 0 {
-			continue
-		}
-
-		// Find column indices by their names from the header
-		var fingerprint, comments int
-		if i == 1 {
-			fingerprint = -1
-			comments = -1
-			for idx, header := range csvLines[0] {
-				switch header {
-				case "SHA-256 Fingerprint":
-					fingerprint = idx
-				case "Comments":
-					comments = idx
-				}
-			}
-
-			if fingerprint == -1 {
-				return nil, fmt.Errorf("required column 'SHA-256 Fingerprint' not found in CSV header")
-			}
-			if comments == -1 {
-				return nil, fmt.Errorf("required column 'Comments' not found in CSV header")
-			}
-		}
-
-		removedCerts[i-1] = removedCertificate{
-			Fingerprint: csvLine[fingerprint],
-			Comments:    csvLine[comments],
+	// Find column indices by their names from the header
+	fingerprint := -1
+	comments := -1
+	for idx, header := range headers {
+		switch header {
+		case fingerprintHeader:
+			fingerprint = idx
+		case commentsHeader:
+			comments = idx
 		}
 	}
+
+	if fingerprint == -1 {
+		return nil, fmt.Errorf("required column 'SHA-256 Fingerprint' not found in CSV header")
+	}
+	if comments == -1 {
+		return nil, fmt.Errorf("required column 'Comments' not found in CSV header")
+	}
+
+	// Now process each line individually instead of loading everything into memory
+	var removedCerts []removedCertificate
+	for {
+		record, err := csvReader.Read()
+		if err != nil {
+			break // End of file or other error
+		}
+
+		removedCerts = append(removedCerts, removedCertificate{
+			Fingerprint: record[fingerprint],
+			Comments:    record[comments],
+		})
+	}
+
+	// All CSV processing is done in the loop above, we already have the removedCerts slice
 	return removedCerts, nil
 }
 
