@@ -60,11 +60,36 @@ func downloadMozillaRemovedCACertsList() ([]removedCertificate, error) {
 
 	removedCerts := make([]removedCertificate, len(csvLines))
 	for i, csvLine := range csvLines {
-		removedCerts[i] = removedCertificate{
-			// From the CSV format that Mozilla publishes, the 8th column (id 7) is the fingerprint and the 23rd column
-			// (id 22) is the comment.
-			Fingerprint: csvLine[7],
-			Comments:    csvLine[22],
+		// Skip the header row
+		if i == 0 {
+			continue
+		}
+
+		// Find column indices by their names from the header
+		var fingerprint, comments int
+		if i == 1 {
+			fingerprint = -1
+			comments = -1
+			for idx, header := range csvLines[0] {
+				switch header {
+				case "SHA-256 Fingerprint":
+					fingerprint = idx
+				case "Comments":
+					comments = idx
+				}
+			}
+
+			if fingerprint == -1 {
+				return nil, fmt.Errorf("required column 'SHA-256 Fingerprint' not found in CSV header")
+			}
+			if comments == -1 {
+				return nil, fmt.Errorf("required column 'Comments' not found in CSV header")
+			}
+		}
+
+		removedCerts[i-1] = removedCertificate{
+			Fingerprint: csvLine[fingerprint],
+			Comments:    csvLine[comments],
 		}
 	}
 	return removedCerts, nil
