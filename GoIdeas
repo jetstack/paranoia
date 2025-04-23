@@ -1,0 +1,7 @@
+// Clear existing status values
+for _, s := range []string{"OK", "STARTING", "DOWN"} {
+	stringMetric.WithLabelValues(s, podName).Set(0)
+}
+
+// Set new status
+stringMetric.WithLabelValues("OK", podName).Set(1)

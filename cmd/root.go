@@ -62,6 +62,7 @@ To enable this behaviour, use "-" as the image name.
 	root.AddCommand(newExport(ctx))
 	root.AddCommand(newInspect(ctx))
 	root.AddCommand(newValidation(ctx))
+	root.AddCommand(runController(ctx))
 
 	return root
 }

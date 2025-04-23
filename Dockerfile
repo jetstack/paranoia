@@ -1,6 +1,9 @@
 FROM golang:1.23-alpine as builder
 WORKDIR /go/src/github.com/jetstack/paranoia
 
+# Install CA certificates and curl
+RUN apk add --no-cache ca-certificates curl
+
 # Download necessary Go modules
 COPY ./go.mod ./
 COPY ./go.sum ./
@@ -17,9 +20,12 @@ RUN mkdir /new_tmp
 # Build the binary
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o paranoia .
 
-# Build tiny container
-FROM scratch
-COPY --from=builder /new_tmp /tmp
-COPY --from=builder /go/src/github.com/jetstack/paranoia/paranoia .
-ADD https://cacerts.digicert.com/DigiCertGlobalRootCA.crt.pem /etc/ssl/certs/DigiCertGlobalRootCA.crt
-ENTRYPOINT ["/paranoia"]
+ENTRYPOINT ["/go/src/github.com/jetstack/paranoia/paranoia"]
+
+# # Build tiny container
+# FROM scratch
+# COPY --from=builder /new_tmp /tmp
+# COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+# COPY --from=builder /usr/bin/curl /usr/bin/curl
+# COPY --from=builder /go/src/github.com/jetstack/paranoia/paranoia .
+# ENTRYPOINT ["/paranoia"]
