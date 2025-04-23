@@ -7,7 +7,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/jetstack/paranoia/cmd/options"
 	"github.com/jetstack/paranoia/internal/analyse"
 	"github.com/jetstack/paranoia/internal/image"
@@ -29,51 +28,67 @@ var (
 			Help: "Total number of Pod reconciliations",
 		},
 	)
-	certificateIssuesGauge = prometheus.NewGaugeVec(
+	certificateIssuesTotal = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "pod_certificate_issues_total",
-			Help: "Total number of certificates with issues",
+			Name: "certificates_with_issues_total",
+			Help: "Total number of certificates Found with issues",
 		},
-		[]string{"pod_name", "namespace"},
+		[]string{"container_name", "namespace"},
 	)
-	certificateWarningsGauge = prometheus.NewGaugeVec(
+	certificateWarningsTotal = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "pod_certificate_warnings_total",
-			Help: "Total number of certificates with warnings",
+			Name: "certificate_warnings_total",
+			Help: "Total number of certificates Found With Warning Status",
 		},
-		[]string{"pod_name", "namespace"},
+		[]string{"container_name", "namespace"},
 	)
-	certificateErrorsGauge = prometheus.NewGaugeVec(
+	certificateErrorsTotal = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "pod_certificate_errors_total",
-			Help: "Total number of certificates with errors",
+			Name: "certificate_errors_total",
+			Help: "Total number of certificates Found With Error Status",
 		},
-		[]string{"pod_name", "namespace"},
+		[]string{"container_name", "namespace"},
 	)
-	certificateFoundGauge = prometheus.NewGaugeVec(
+	certificateFoundTotal = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "pod_certificate_found_total",
+			Name: "certificate_found_total",
 			Help: "Total number of certificates found",
 		},
-		[]string{"pod_name", "namespace"},
+		[]string{"container_name", "namespace"},
 	)
-	certificatesGauge = prometheus.NewGaugeVec(
+	certificateIssues = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "certificates_with_issues",
-			Help: "Certificates Found with Issues",
+			Name: "certificate_issues",
+			Help: "Certificates Found with Issues, including Details",
 		},
-		[]string{"pod_name", "namespace", "certificate", "fingerprint", "level"},
+		[]string{"container_name", "namespace", "certificate", "fingerprint", "reason", "level"},
+	)
+	partialCertificatesFoundTotal = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "partial_certificates_found_total",
+			Help: "Total number of partial certificates found",
+		},
+		[]string{"container_name", "namespace"},
+	)
+	partialCertificateIssues = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "partial_certificate_issues",
+			Help: "Partial certificates found, including details",
+		},
+		[]string{"container_name", "namespace", "location", "reason"},
 	)
 )
 
 func init() {
 	// Register metrics with Prometheus
 	prometheus.MustRegister(reconcileCounter)
-	prometheus.MustRegister(certificateIssuesGauge)
-	prometheus.MustRegister(certificateFoundGauge)
-	prometheus.MustRegister(certificatesGauge)
-	prometheus.MustRegister(certificateWarningsGauge)
-	prometheus.MustRegister(certificateErrorsGauge)
+	prometheus.MustRegister(certificateIssuesTotal)
+	prometheus.MustRegister(certificateFoundTotal)
+	prometheus.MustRegister(certificateIssues)
+	prometheus.MustRegister(certificateWarningsTotal)
+	prometheus.MustRegister(certificateErrorsTotal)
+	prometheus.MustRegister(partialCertificatesFoundTotal)
+	prometheus.MustRegister(partialCertificateIssues)
 }
 
 // PodReconciler reconciles a Pod object
@@ -119,7 +134,6 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		if match, _ := path.Match("sleep-*", pod.Name); match {
 			logger.Info("Found sleep-pod container, inspecting image")
 			imageName := container.Image
-			println(imageName)
 
 			imgOpts := &options.Image{} // Initialize imgOpts
 			iOpts, err := imgOpts.Options()
@@ -155,25 +169,26 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 					for _, n := range notes {
 						if n.Level == analyse.NoteLevelError {
 							numError++
-							certificatesGauge.WithLabelValues(pod.Name, pod.Namespace, cert.Certificate.Subject.String(), fingerprint, "error").Set(float64(1))
+							certificateIssues.WithLabelValues(container.Name, pod.Namespace, cert.Certificate.Subject.String(), fingerprint, n.Reason, "error").Set(float64(1))
 						} else if n.Level == analyse.NoteLevelWarn {
 							numWarn++
-							certificatesGauge.WithLabelValues(pod.Name, pod.Namespace, cert.Certificate.Subject.String(), fingerprint, "warn").Set(float64(1))
+							certificateIssues.WithLabelValues(container.Name, pod.Namespace, cert.Certificate.Subject.String(), fingerprint, n.Reason, "warn").Set(float64(1))
 						}
 					}
 					logger.Info(fmt.Sprintf("Certificate %s, Fingerprint: %s", cert.Certificate.Subject, fingerprint))
 				}
 			}
-			certificateIssuesGauge.WithLabelValues(pod.Name, pod.Namespace).Set(float64(numIssues))
-			certificateWarningsGauge.WithLabelValues(pod.Name, pod.Namespace).Set(float64(numWarn))
-			certificateErrorsGauge.WithLabelValues(pod.Name, pod.Namespace).Set(float64(numError))
-			certificateFoundGauge.WithLabelValues(pod.Name, pod.Namespace).Set(float64(len(parsedCertificates.Found)))
+			certificateIssuesTotal.WithLabelValues(container.Name, pod.Namespace).Set(float64(numIssues))
+			certificateWarningsTotal.WithLabelValues(container.Name, pod.Namespace).Set(float64(numWarn))
+			certificateErrorsTotal.WithLabelValues(container.Name, pod.Namespace).Set(float64(numError))
+			certificateFoundTotal.WithLabelValues(container.Name, pod.Namespace).Set(float64(len(parsedCertificates.Found)))
+			partialCertificatesFoundTotal.WithLabelValues(container.Name, pod.Namespace).Set(float64(len(parsedCertificates.Partials)))
 			logger.Info(fmt.Sprintf("Found %d certificates total, of which %d had issues", len(parsedCertificates.Found), numIssues))
 
 			if len(parsedCertificates.Partials) > 0 {
 				for _, p := range parsedCertificates.Partials {
-					fmtFn := color.New(color.FgYellow).SprintfFunc()
-					fmt.Print(fmtFn("⚠️ Partial certificate found in file %s: %s\n", p.Location, p.Reason))
+					partialCertificateIssues.WithLabelValues(container.Name, pod.Namespace, p.Location, p.Reason).Set(float64(1))
+					logger.Info(fmt.Sprintf("Partial certificate found in file %s: %s", p.Location, p.Reason))
 				}
 			}
 		}
