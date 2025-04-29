@@ -8,12 +8,14 @@ import (
 	logrusr "github.com/bombsimon/logrusr/v4"
 	"github.com/jetstack/paranoia/cmd/options"
 	"github.com/jetstack/paranoia/internal/controller"
+	"github.com/jetstack/paranoia/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
@@ -67,10 +69,14 @@ func runController(ctx context.Context) *cobra.Command {
 				return err
 			}
 
+			metricsServer := metrics.New(log, ctrmetrics.Registry, mgr.GetCache())
+
 			c := controller.NewPodReconciler(
 				mgr.GetClient(),
 				log,
+				metricsServer,
 			)
+
 			if err := c.SetupWithManager(mgr); err != nil {
 				return fmt.Errorf("failed to setup controller: %s", err)
 			}
