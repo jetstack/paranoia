@@ -23,6 +23,20 @@ type Metrics struct {
 	PartialCertificateIssues      *prometheus.GaugeVec
 }
 
+func (m *Metrics) NewMetricCleaner() *MetricCleaner {
+	return &MetricCleaner{
+		metrics: []*prometheus.GaugeVec{
+			m.CertificateIssuesTotal,
+			m.CertificateFoundTotal,
+			m.CertificateIssues,
+			m.CertificateWarningsTotal,
+			m.CertificateErrorsTotal,
+			m.PartialCertificatesFoundTotal,
+			m.PartialCertificateIssues,
+		},
+	}
+}
+
 func (m *Metrics) RegisterMetrics() {
 	prometheus.MustRegister(m.ReconcileCounter)
 	prometheus.MustRegister(m.CertificateIssuesTotal)
@@ -50,45 +64,45 @@ func New(log *logrus.Entry, reg ctrmetrics.RegistererGatherer, cache k8sclient.R
 	_ = reg.Register(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	_ = reg.Register(collectors.NewGoCollector())
 
-	var namespace = "paranoia"
+	const MetricNamespace = "paranoia"
 
 	certificateIssuesTotal := promauto.With(reg).NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: namespace,
+		Namespace: MetricNamespace,
 		Name:      "certificates_with_issues_total",
 		Help:      "Total number of certificates Found with issues",
 	}, []string{"container_name", "namespace", "pod_name"})
 	certificateWarningsTotal := promauto.With(reg).NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: namespace,
+		Namespace: MetricNamespace,
 		Name:      "certificate_warnings_total",
 		Help:      "Total number of certificates Found With Warning Status",
 	}, []string{"container_name", "namespace", "pod_name"})
 	certificateErrorsTotal := promauto.With(reg).NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: namespace,
+		Namespace: MetricNamespace,
 		Name:      "certificate_errors_total",
 		Help:      "Total number of certificates Found With Error Status",
 	}, []string{"container_name", "namespace", "pod_name"})
 	certificateFoundTotal := promauto.With(reg).NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: namespace,
+		Namespace: MetricNamespace,
 		Name:      "certificate_found_total",
 		Help:      "Total number of certificates found",
 	}, []string{"container_name", "namespace", "pod_name"})
 	certificateIssues := promauto.With(reg).NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: namespace,
+		Namespace: MetricNamespace,
 		Name:      "certificate_issues",
 		Help:      "Certificates Found with Issues, including Details",
 	}, []string{"container_name", "namespace", "pod_name", "certificate", "fingerprint", "reason", "level"})
 	partialCertificatesFoundTotal := promauto.With(reg).NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: namespace,
+		Namespace: MetricNamespace,
 		Name:      "partial_certificates_found_total",
 		Help:      "Total number of partial certificates found",
 	}, []string{"container_name", "namespace", "pod_name"})
 	partialCertificateIssues := promauto.With(reg).NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: namespace,
+		Namespace: MetricNamespace,
 		Name:      "partial_certificate_issues",
 		Help:      "Partial certificates found, including details",
 	}, []string{"container_name", "namespace", "pod_name", "location", "reason"})
 	reconcileCounter := promauto.With(reg).NewCounter(prometheus.CounterOpts{
-		Namespace: namespace,
+		Namespace: MetricNamespace,
 		Name:      "pod_reconcile_total",
 		Help:      "Total number of Pod reconciliations",
 	})

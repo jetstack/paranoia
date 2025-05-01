@@ -4,3 +4,6 @@ paranoia
 
 /.idea
 man/
+
+*-pod.yaml
+*-deployment.yaml

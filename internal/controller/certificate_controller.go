@@ -9,6 +9,7 @@ import (
 
 	"github.com/jetstack/paranoia/cmd/options"
 	"github.com/jetstack/paranoia/internal/analyse"
+	"github.com/jetstack/paranoia/internal/client"
 	"github.com/jetstack/paranoia/internal/image"
 	"github.com/jetstack/paranoia/internal/metrics"
 	"github.com/pkg/errors"
@@ -27,38 +28,32 @@ type PodReconciler struct {
 	Metrics *metrics.Metrics
 	Scheme  *runtime.Scheme
 	Log     *logrus.Entry
+	cleaner *metrics.MetricCleaner
 }
 
 func NewPodReconciler(
 	kubeClient k8sclient.Client,
 	log *logrus.Entry,
+	imageClient *client.Client,
 	metrics *metrics.Metrics,
 ) *PodReconciler {
+	log = log.WithField("controller", "pod")
 	r := &PodReconciler{
-		Client:  kubeClient,
 		Log:     log,
+		Client:  kubeClient,
 		Metrics: metrics,
 	}
 
 	// Register metrics with Prometheus
 	metrics.RegisterMetrics()
+	metrics.NewMetricCleaner()
 
 	return r
 }
 
-// Reconcile is part of the main kubernetes reconciliation loop
 func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	cleaner := metrics.NewMetricCleaner(
-		r.Metrics.CertificateIssuesTotal,
-		r.Metrics.CertificateFoundTotal,
-		r.Metrics.CertificateIssues,
-		r.Metrics.CertificateWarningsTotal,
-		r.Metrics.CertificateErrorsTotal,
-		r.Metrics.PartialCertificatesFoundTotal,
-		r.Metrics.PartialCertificateIssues,
-	)
 	// Increment reconciliation counter
 	r.Metrics.ReconcileCounter.Inc()
 
@@ -67,7 +62,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	if err := r.Get(ctx, req.NamespacedName, &pod); err != nil {
 		if apierrors.IsNotFound(err) {
 			logger.Info("Pod resource not found. Cleaning up metrics.")
-			cleaner.HandlePodDelete(&pod) // Ensure pod contains correct labels
+			r.cleaner.HandlePodDelete(&pod) // Ensure pod contains correct labels
 			return ctrl.Result{}, nil
 		}
 		logger.Error(err, "Failed to get Pod.")
@@ -77,7 +72,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	// Skip reconciliation if the pod is being deleted
 	if !pod.DeletionTimestamp.IsZero() {
 		logger.Info("Pod resource is being deleted. Cleaning up metrics.")
-		cleaner.HandlePodDelete(&pod) // Ensure pod contains correct labels
+		r.cleaner.HandlePodDelete(&pod) // Ensure pod contains correct labels
 		return ctrl.Result{}, nil
 	}
 
