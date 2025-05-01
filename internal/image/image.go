@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	crapi "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/google"
 	"github.com/pkg/errors"
 
 	"github.com/jetstack/paranoia/internal/certificate"
@@ -22,6 +25,21 @@ func FindImageCertificates(ctx context.Context, name string, opts ...Option) (*c
 	o := makeOptions(opts...)
 
 	name = strings.TrimSpace(name)
+	// Your custom OAuth2 token
+	token := ""
+
+	reg := regexp.MustCompile(`(^(.*\.)?gcr.io$|^(.*\.)?k8s.io$|^(.+)-docker.pkg.dev$)`)
+
+	// Build a composite keychain
+
+	kc := authn.NewMultiKeychain(
+		authn.DefaultKeychain,
+		google.Keychain,
+		&TokenKeychain{
+			Token:      token,
+			Registries: []*regexp.Regexp{reg},
+		},
+	)
 
 	var (
 		img crapi.Image
@@ -48,7 +66,7 @@ func FindImageCertificates(ctx context.Context, name string, opts ...Option) (*c
 	case strings.HasPrefix(name, "file://"):
 		img, err = crane.Load(strings.TrimPrefix(name, "file://"), o.craneOpts...)
 	default:
-		img, err = crane.Pull(name, o.craneOpts...)
+		img, err = crane.Pull(name, append(o.craneOpts, crane.WithAuthFromKeychain(kc))...)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to load image: %w", err)

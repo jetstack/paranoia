@@ -46,7 +46,7 @@ func NewPodReconciler(
 
 	// Register metrics with Prometheus
 	metrics.RegisterMetrics()
-	metrics.NewMetricCleaner()
+	r.cleaner = metrics.NewMetricCleaner()
 
 	return r
 }
