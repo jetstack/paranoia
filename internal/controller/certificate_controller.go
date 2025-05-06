@@ -9,7 +9,6 @@ import (
 
 	"github.com/jetstack/paranoia/cmd/options"
 	"github.com/jetstack/paranoia/internal/analyse"
-	"github.com/jetstack/paranoia/internal/client"
 	"github.com/jetstack/paranoia/internal/image"
 	"github.com/jetstack/paranoia/internal/metrics"
 	"github.com/pkg/errors"
@@ -34,7 +33,6 @@ type PodReconciler struct {
 func NewPodReconciler(
 	kubeClient k8sclient.Client,
 	log *logrus.Entry,
-	imageClient *client.Client,
 	metrics *metrics.Metrics,
 ) *PodReconciler {
 	log = log.WithField("controller", "pod")

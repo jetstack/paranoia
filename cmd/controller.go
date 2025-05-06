@@ -6,10 +6,7 @@ import (
 	"net/http"
 
 	logrusr "github.com/bombsimon/logrusr/v4"
-	"github.com/go-chi/transport"
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jetstack/paranoia/cmd/options"
-	"github.com/jetstack/paranoia/internal/client"
 	"github.com/jetstack/paranoia/internal/controller"
 	"github.com/jetstack/paranoia/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -30,7 +27,7 @@ func runController(ctx context.Context) *cobra.Command {
 		Short: "Run Paranoia as a Kubernetes Controller",
 		Long:  "Run Paranoia as a Kubernetes Controller using controller-runtime.",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			opts.Complete()
+
 			// Register custom metrics with Prometheus
 			http.Handle("/metrics", promhttp.Handler())
 			go func() {
@@ -74,20 +71,10 @@ func runController(ctx context.Context) *cobra.Command {
 			}
 
 			metricsServer := metrics.New(log, ctrmetrics.Registry, mgr.GetCache())
-			client, err := client.New(ctx, log, opts.Client)
-			if err != nil {
-				return fmt.Errorf("failed to setup image registry clients: %s", err)
-			}
-			log.Info("Setup Registry clients", client)
-
-			opts.Client.Transport = transport.Chain(
-				cleanhttp.DefaultTransport(),
-			)
 
 			c := controller.NewPodReconciler(
 				mgr.GetClient(),
 				log,
-				client,
 				metricsServer,
 			)
 

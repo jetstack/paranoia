@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"strings"
 
+	"github.com/awslabs/amazon-ecr-credential-helper/ecr-login"
+	"github.com/chrismellard/docker-credential-acr-env/pkg/credhelper"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	crapi "github.com/google/go-containerregistry/pkg/v1"
@@ -25,20 +26,13 @@ func FindImageCertificates(ctx context.Context, name string, opts ...Option) (*c
 	o := makeOptions(opts...)
 
 	name = strings.TrimSpace(name)
-	// Your custom OAuth2 token
-	token := ""
-
-	reg := regexp.MustCompile(`(^(.*\.)?gcr.io$|^(.*\.)?k8s.io$|^(.+)-docker.pkg.dev$)`)
-
 	// Build a composite keychain
 
 	kc := authn.NewMultiKeychain(
 		authn.DefaultKeychain,
 		google.Keychain,
-		&TokenKeychain{
-			Token:      token,
-			Registries: []*regexp.Regexp{reg},
-		},
+		authn.NewKeychainFromHelper(ecr.NewECRHelper()),
+		authn.NewKeychainFromHelper(credhelper.NewACRCredentialsHelper()),
 	)
 
 	var (
