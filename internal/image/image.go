@@ -66,6 +66,18 @@ func FindImageCertificates(ctx context.Context, name string, opts ...Option) (*c
 		return nil, fmt.Errorf("failed to load image: %w", err)
 	}
 
+	// Ensure cleanup of image resources
+	defer func() {
+		if img != nil {
+			if c, ok := img.(interface{ Close() error }); ok {
+				_ = c.Close()
+			}
+			if c, ok := img.(interface{ Cleanup() error }); ok {
+				_ = c.Cleanup()
+			}
+		}
+	}()
+
 	var exportErr error
 	exportDone := make(chan struct{})
 	r, w := io.Pipe()
@@ -81,12 +93,40 @@ func FindImageCertificates(ctx context.Context, name string, opts ...Option) (*c
 
 	parsedCertificates, err := certificate.FindCertificates(context.TODO(), r)
 	if err != nil {
+		// Ensure cleanup of image resources before returning
+		if img != nil {
+			if c, ok := img.(interface{ Close() error }); ok {
+				_ = c.Close()
+			}
+			if c, ok := img.(interface{ Cleanup() error }); ok {
+				_ = c.Cleanup()
+			}
+		}
 		return nil, errors.Wrap(err, "failed to search for certificates in container image")
 	}
 
 	<-exportDone
 	if exportErr != nil {
+		// Ensure cleanup of image resources before returning
+		if img != nil {
+			if c, ok := img.(interface{ Close() error }); ok {
+				_ = c.Close()
+			}
+			if c, ok := img.(interface{ Cleanup() error }); ok {
+				_ = c.Cleanup()
+			}
+		}
 		return nil, errors.Wrap(err, "error when exporting image")
+	}
+
+	// Ensure cleanup of image resources after successful processing
+	if img != nil {
+		if c, ok := img.(interface{ Close() error }); ok {
+			_ = c.Close()
+		}
+		if c, ok := img.(interface{ Cleanup() error }); ok {
+			_ = c.Cleanup()
+		}
 	}
 
 	return parsedCertificates, nil

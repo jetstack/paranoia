@@ -22,9 +22,14 @@ type Options struct {
 	GracefulShutdownTimeout time.Duration
 	CacheSyncPeriod         time.Duration
 
+	MaxConcurrentReconciles int
+
 	KubeConfigFlags *genericclioptions.ConfigFlags
 
-	Client client.Options
+	Client           client.Options
+	NamespaceExclude []string
+
+	RequeueTime int
 }
 
 func (o *Options) AddFlags(cmd *cobra.Command) {
@@ -78,4 +83,14 @@ func (o *Options) addAppFlags(fs *pflag.FlagSet) {
 	fs.DurationVarP(&o.CacheSyncPeriod,
 		"cache-sync-period", "", 5*time.Hour,
 		"The time in which all resources should be updated.")
+	fs.IntVarP(&o.MaxConcurrentReconciles,
+		"max-concurrent-reconciles", "", 1,
+		"Maximum number of concurrent reconciles for the controller.")
+
+	fs.StringSliceVarP(&o.NamespaceExclude,
+		"namespace-exclude", "", []string{},
+		"List of namespaces to exclude from the controller's operations.")
+	fs.IntVarP(&o.RequeueTime,
+		"requeue-time", "", 10,
+		"How often to reconcile the resources. This is in minutes. The default is 10 minutes.")
 }

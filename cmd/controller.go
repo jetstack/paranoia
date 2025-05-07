@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	logrusr "github.com/bombsimon/logrusr/v4"
 	"github.com/jetstack/paranoia/cmd/options"
@@ -71,11 +72,13 @@ func runController(ctx context.Context) *cobra.Command {
 			}
 
 			metricsServer := metrics.New(log, ctrmetrics.Registry, mgr.GetCache())
-
 			c := controller.NewPodReconciler(
 				mgr.GetClient(),
 				log,
 				metricsServer,
+				opts.MaxConcurrentReconciles,
+				opts.NamespaceExclude,
+				time.Duration(opts.RequeueTime)*time.Minute,
 			)
 
 			if err := c.SetupWithManager(mgr); err != nil {

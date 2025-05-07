@@ -44,13 +44,13 @@ Paranoia can be used to list out the certificates in a container image:
 
 ```shell
 $ paranoia export alpine:latest
-File Location                       Subject                                                                                                                                                                        
-/etc/ssl/certs/ca-certificates.crt  CN=ACCVRAIZ1,OU=PKIACCV,O=ACCV,C=ES                                                                                                                                            
-/etc/ssl/certs/ca-certificates.crt  OU=AC RAIZ FNMT-RCM,O=FNMT-RCM,C=ES                                                                                                                                            
-/etc/ssl/certs/ca-certificates.crt  CN=AC RAIZ FNMT-RCM SERVIDORES SEGUROS,OU=Ceres,O=FNMT-RCM,C=ES,2.5.4.97=#130f56415445532d51323832363030344a                                                                   
+File Location                       Subject
+/etc/ssl/certs/ca-certificates.crt  CN=ACCVRAIZ1,OU=PKIACCV,O=ACCV,C=ES
+/etc/ssl/certs/ca-certificates.crt  OU=AC RAIZ FNMT-RCM,O=FNMT-RCM,C=ES
+/etc/ssl/certs/ca-certificates.crt  CN=AC RAIZ FNMT-RCM SERVIDORES SEGUROS,OU=Ceres,O=FNMT-RCM,C=ES,2.5.4.97=#130f56415445532d51323832363030344a
 …
-/etc/ssl/certs/ca-certificates.crt  CN=vTrus ECC Root CA,O=iTrusChina Co.\,Ltd.,C=CN                                                                                                                               
-/etc/ssl/certs/ca-certificates.crt  CN=vTrus Root CA,O=iTrusChina Co.\,Ltd.,C=CN                                                                                                                                   
+/etc/ssl/certs/ca-certificates.crt  CN=vTrus ECC Root CA,O=iTrusChina Co.\,Ltd.,C=CN
+/etc/ssl/certs/ca-certificates.crt  CN=vTrus Root CA,O=iTrusChina Co.\,Ltd.,C=CN
 Found 140 certificates
 ```
 
@@ -111,3 +111,25 @@ However, there are some limitations to bear in mind while using Paranoia:
 
 The usage documentation for Paranoia is included in the help text.
 Invoke a command with `--help` for usage instructions, or see the manual pages.
+
+## Controller Mode
+
+Paranoia can be run in a controller mode
+
+### Monitoring
+
+To Monitor Paranoia, running in Controller Mode, You can use the example grafana dashboard provided in the `monitoring` directory, and to monitor the Go Process, you can import the `Go Process` dashboard from the Grafana Dashboards repository. The Go Process dashboard is available at [Go Processes](https://grafana.com/grafana/dashboards/6671-go-processes/).
+
+### Registry Authentication
+
+### Google Authentication
+
+Paranoia Authenticates to Google Container Registry using `https://github.com/GoogleCloudPlatform/docker-credential-gcr` helper.
+
+The most secure and recommended way to authenticate with GCR Credential Helper is to use Workload Identity. This allows you to use the identity of a GKE workload to authenticate with GCR without needing to manage service account keys.
+
+Alternatively, you can use a service account key file. To do this, you need to set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to the path of the service account key file, and ensure it is mounted into the container at the same path.
+
+#### Unsupported Registry Authentication
+
+Paranoia does not support authentication to private registries. If you need to authenticate to a private registry, you can mount a docker config file at location `~/.docker/config.json` This file should contain the credentials for the private registry in the standard Docker config format.

@@ -14,6 +14,7 @@ import (
 
 type Metrics struct {
 	ReconcileCounter              prometheus.Counter
+	ReconcileErrorsTotal          *prometheus.CounterVec
 	CertificateIssuesTotal        *prometheus.GaugeVec
 	CertificateWarningsTotal      *prometheus.GaugeVec
 	CertificateErrorsTotal        *prometheus.GaugeVec
@@ -39,6 +40,7 @@ func (m *Metrics) NewMetricCleaner() *MetricCleaner {
 
 func (m *Metrics) RegisterMetrics() {
 	prometheus.MustRegister(m.ReconcileCounter)
+	prometheus.MustRegister(m.ReconcileErrorsTotal)
 	prometheus.MustRegister(m.CertificateIssuesTotal)
 	prometheus.MustRegister(m.CertificateWarningsTotal)
 	prometheus.MustRegister(m.CertificateErrorsTotal)
@@ -106,9 +108,15 @@ func New(log *logrus.Entry, reg ctrmetrics.RegistererGatherer, cache k8sclient.R
 		Name:      "pod_reconcile_total",
 		Help:      "Total number of Pod reconciliations",
 	})
+	reconcileErrorsTotal := promauto.With(reg).NewCounterVec(prometheus.CounterOpts{
+		Namespace: MetricNamespace,
+		Name:      "reconcile_errors_total",
+		Help:      "Total number of errors encountered during reconciliation",
+	}, []string{"namespace", "pod_name", "error_stage"})
 
 	return &Metrics{
 		ReconcileCounter:              reconcileCounter,
+		ReconcileErrorsTotal:          reconcileErrorsTotal,
 		CertificateIssuesTotal:        certificateIssuesTotal,
 		CertificateWarningsTotal:      certificateWarningsTotal,
 		CertificateErrorsTotal:        certificateErrorsTotal,
