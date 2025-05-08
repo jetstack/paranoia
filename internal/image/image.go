@@ -20,25 +20,77 @@ import (
 	"github.com/jetstack/paranoia/internal/certificate"
 )
 
+// QuayAuthenticator implements the authn.Authenticator interface for quay.io
+type QuayAuthenticator struct {
+	Username string
+	Password string
+}
+
+// Authorization returns the authentication header for quay.io
+func (q *QuayAuthenticator) Authorization() (*authn.AuthConfig, error) {
+	return &authn.AuthConfig{
+		Username: q.Username,
+		Password: q.Password,
+	}, nil
+}
+
+type quayKeychain struct {
+	auth authn.Authenticator
+}
+
+func (q *quayKeychain) Resolve(target authn.Resource) (authn.Authenticator, error) {
+	if target.RegistryStr() == "quay.io" {
+		return q.auth, nil
+	}
+	return authn.Anonymous, nil
+}
+
+// Custom keychain that only returns ECR creds for ECR domains
+type ecrKeychain struct {
+	delegate authn.Keychain
+}
+
+func (ek *ecrKeychain) Resolve(target authn.Resource) (authn.Authenticator, error) {
+	// Only match ECR domains
+	if strings.HasSuffix(target.RegistryStr(), ".amazonaws.com") {
+		return ek.delegate.Resolve(target)
+	}
+	return authn.Anonymous, nil
+}
+
 // FindImageCertificates will pull or load the image with the given name, scan
 // for X.509 certificates, and return the result.
 func FindImageCertificates(ctx context.Context, name string, opts ...Option) (*certificate.ParsedCertificates, error) {
 	o := makeOptions(opts...)
 
 	name = strings.TrimSpace(name)
-	// Build a composite keychain
+
+	var quayAuth authn.Authenticator = authn.Anonymous
+	if username, password := os.Getenv("QUAY_USERNAME"), os.Getenv("QUAY_PASSWORD"); username != "" && password != "" {
+		quayAuth = &QuayAuthenticator{
+			Username: username,
+			Password: password,
+		}
+	}
+
+	quayKeychain := &quayKeychain{auth: quayAuth}
+
+	// ECR Helper
+	ecrHelper := ecr.NewECRHelper()
 
 	kc := authn.NewMultiKeychain(
 		authn.DefaultKeychain,
 		google.Keychain,
-		authn.NewKeychainFromHelper(ecr.NewECRHelper()),
+		&ecrKeychain{delegate: authn.NewKeychainFromHelper(ecrHelper)},
 		authn.NewKeychainFromHelper(credhelper.NewACRCredentialsHelper()),
+		quayKeychain,
 	)
 
 	var (
 		img crapi.Image
 		err error
 	)
+
 	switch {
 	case name == "-":
 		var f *os.File
