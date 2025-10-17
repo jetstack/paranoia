@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hako/durafmt"
+	"github.com/jetstack/paranoia/cmd/options"
 )
 
 type NoteLevel string
@@ -36,21 +37,28 @@ type Analyser struct {
 	RemovedCertificates []removedCertificate
 }
 
+const defaultMozillaRemovedCACertificateReportURL = "https://ccadb.my.salesforce-sites.com/mozilla/RemovedCACertificateReportCSVFormat"
+
 // NewAnalyser creates a new Analyzer using the public Mozilla CA removed certificate list as part of
 // its checks. This method performs HTTP requests to retrieve that list. The request will be made with the given
-// context.
-func NewAnalyser() (*Analyser, error) {
-	rc, err := downloadMozillaRemovedCACertsList()
+// context. The options struct configures various aspects of the analysis.
+func NewAnalyser(opts *options.Analyse) (*Analyser, error) {
+	rc, err := downloadMozillaRemovedCACertsList(opts)
 	if err != nil {
 		return nil, err
 	}
 	return &Analyser{RemovedCertificates: rc}, nil
 }
 
-func downloadMozillaRemovedCACertsList() ([]removedCertificate, error) {
-	const mozillaRemovedCACertificateReportURL = "https://ccadb-public.secure.force.com/mozilla/RemovedCACertificateReportCSVFormat"
+func downloadMozillaRemovedCACertsList(opts *options.Analyse) ([]removedCertificate, error) {
 
-	resp, err := http.Get(mozillaRemovedCACertificateReportURL)
+	// Use default URL if none provided
+	url := opts.MozillaRemovedCertsURL
+	if url == "" {
+		url = defaultMozillaRemovedCACertificateReportURL
+	}
+
+	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}

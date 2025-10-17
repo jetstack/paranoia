@@ -18,6 +18,7 @@ import (
 
 func newInspect(ctx context.Context) *cobra.Command {
 	var imgOpts *options.Image
+	var analyseOpts *options.Analyse
 
 	cmd := &cobra.Command{
 		Use:   "inspect [flags] image",
@@ -47,7 +48,7 @@ Partial certificates are also all printed for further inspection.
 				return err
 			}
 
-			analyser, err := analyse.NewAnalyser()
+			analyser, err := analyse.NewAnalyser(analyseOpts)
 			if err != nil {
 				return errors.Wrap(err, "failed to initialise analyser")
 			}
@@ -97,6 +98,7 @@ Partial certificates are also all printed for further inspection.
 	}
 
 	imgOpts = options.RegisterImage(cmd)
+	analyseOpts = options.RegisterAnalyse(cmd)
 	cmd.Args = cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs)
 
 	return cmd
