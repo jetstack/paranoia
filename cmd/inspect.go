@@ -48,7 +48,7 @@ Partial certificates are also all printed for further inspection.
 				return err
 			}
 
-			analyser, err := analyse.NewAnalyser(analyseOpts.MozillaRemovedCertsURL)
+			analyser, err := analyse.NewAnalyser(analyseOpts)
 			if err != nil {
 				return errors.Wrap(err, "failed to initialise analyser")
 			}
