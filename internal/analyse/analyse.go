@@ -38,19 +38,25 @@ type Analyser struct {
 
 // NewAnalyser creates a new Analyzer using the public Mozilla CA removed certificate list as part of
 // its checks. This method performs HTTP requests to retrieve that list. The request will be made with the given
-// context.
-func NewAnalyser() (*Analyser, error) {
-	rc, err := downloadMozillaRemovedCACertsList()
+// context. If mozillaRemovedCertsURL is empty, the default Mozilla URL will be used.
+func NewAnalyser(mozillaRemovedCertsURL string) (*Analyser, error) {
+	rc, err := downloadMozillaRemovedCACertsList(mozillaRemovedCertsURL)
 	if err != nil {
 		return nil, err
 	}
 	return &Analyser{RemovedCertificates: rc}, nil
 }
 
-func downloadMozillaRemovedCACertsList() ([]removedCertificate, error) {
-	const mozillaRemovedCACertificateReportURL = "https://ccadb-public.secure.force.com/mozilla/RemovedCACertificateReportCSVFormat"
+func downloadMozillaRemovedCACertsList(mozillaRemovedCertsURL string) ([]removedCertificate, error) {
+	const defaultMozillaRemovedCACertificateReportURL = "https://ccadb.my.salesforce-sites.com/mozilla/RemovedCACertificateReportCSVFormat"
 
-	resp, err := http.Get(mozillaRemovedCACertificateReportURL)
+	// Use default URL if none provided
+	url := mozillaRemovedCertsURL
+	if url == "" {
+		url = defaultMozillaRemovedCACertificateReportURL
+	}
+
+	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
