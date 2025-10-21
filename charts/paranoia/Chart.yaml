@@ -1,0 +1,17 @@
+apiVersion: v2
+name: paranoia
+description: A Helm chart for Paranoia - Kubernetes Certificate Security Controller
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords:
+  - security
+  - certificates
+  - controller
+  - kubernetes
+home: https://github.com/jetstack/paranoia
+sources:
+  - https://github.com/jetstack/paranoia
+maintainers:
+  - name: Jetstack
+    email: paranoia@jetstack.io

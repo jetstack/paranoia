@@ -114,7 +114,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 			return ctrl.Result{}, err
 		}
 
-		analyser, err := analyse.NewAnalyser()
+		analyser, err := analyse.NewAnalyser(&options.Analyse{})
 		if err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to initialise analyser")
 		}

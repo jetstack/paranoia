@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "paranoia.fullname" . }}
+  labels:
+    {{- include "paranoia.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "paranoia.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "paranoia.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "paranoia.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            {{- range .Values.controller.args }}
+            - {{ . | quote }}
+            {{- end }}
+            {{- if .Values.controller.config.requeueTime }}
+            - --requeue-time={{ .Values.controller.config.requeueTime }}
+            {{- end }}
+            {{- if .Values.controller.config.metricsServingAddress }}
+            - --metrics-serving-address={{ .Values.controller.config.metricsServingAddress }}
+            {{- end }}
+            {{- if .Values.controller.config.logLevel }}
+            - --log-level={{ .Values.controller.config.logLevel }}
+            {{- end }}
+            {{- if .Values.controller.config.imageCacheTimeout }}
+            - --image-cache-timeout={{ .Values.controller.config.imageCacheTimeout }}
+            {{- end }}
+            {{- if .Values.controller.config.gracefulShutdownTimeout }}
+            - --graceful-shutdown-timeout={{ .Values.controller.config.gracefulShutdownTimeout }}
+            {{- end }}
+            {{- if .Values.controller.config.cacheSyncPeriod }}
+            - --cache-sync-period={{ .Values.controller.config.cacheSyncPeriod }}
+            {{- end }}
+            {{- if .Values.controller.config.maxConcurrentReconciles }}
+            - --max-concurrent-reconciles={{ .Values.controller.config.maxConcurrentReconciles }}
+            {{- end }}
+            {{- if .Values.controller.config.pprofServingAddress }}
+            - --pprof-serving-address={{ .Values.controller.config.pprofServingAddress }}
+            {{- end }}
+            {{- if .Values.controller.config.namespaceExclude }}
+            {{- range .Values.controller.config.namespaceExclude }}
+            - --namespace-exclude={{ . }}
+            {{- end }}
+            {{- end }}
+          {{- with .Values.controller.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: {{ .Values.service.name }}
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          {{- with .Values.controller.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

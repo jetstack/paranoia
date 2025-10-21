@@ -1,0 +1,39 @@
+# Local development values for paranoia chart
+# This file contains configuration optimized for local development
+
+image:
+  repository: paranoia
+  pullPolicy: Never
+  tag: "latest"
+
+# Enable metrics for local development
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false  # Disable by default unless you have Prometheus operator
+
+# Resource limits suitable for local development
+resources:
+  limits:
+    cpu: 200m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Controller configuration for local development
+controller:
+  args:
+    - controller
+  config:
+    # Slightly higher requeue time for local development
+    requeueTime: 5
+    # Lower log level for debugging
+    logLevel: "debug"
+    # Reduced cache timeout for faster development iteration
+    imageCacheTimeout: "10m"
+    # Exclude system namespaces in local development
+    namespaceExclude:
+      - kube-system
+      - kube-public
+      - kube-node-lease
